@@ -9,6 +9,9 @@ end
 # puts "GOT TOKEN: #{token}"
 
 
+# See https://developer.github.com/v4/explorer/ for helper when creating queries
+
+
 module GitHubGraphQL
   # Configure GraphQL endpoint using the basic HTTP network adapter.
   HTTP = GraphQL::Client::HTTP.new("https://api.github.com/graphql") do
@@ -49,7 +52,7 @@ BranchQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
   repository(owner: "KlickInc", name: "klick-genome") {
 
     # Get first two branches
-    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: 2) {
+    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: 100) {
 
       edges {
 
@@ -58,7 +61,15 @@ BranchQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
             name
             target {
               ... on Commit {
-                history(first: 20, since: "2018-06-01T00:00:01") {
+                # Branch head commit, to determine if branch is stale
+                oid  # SHA
+                committedDate
+                committer { email }
+                messageHeadline
+                status { state }
+
+                # History example
+                history(first: 2, since: "2018-06-01T00:00:01") {
                   edges {
                     node {
                       ... on Commit {
@@ -90,5 +101,79 @@ BranchQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
 GRAPHQL
 
 
-result = GitHubGraphQL::Client.query(BranchQuery)
+# result = GitHubGraphQL::Client.query(BranchQuery)
+# pp result
+
+
+
+# ref https://developer.github.com/v4/object/pullrequest/
+
+
+# Limiting the number of PRs to 100.  If we have more than 100 PRs,
+# we're in trouble.
+PullRequestQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
+{
+  rateLimit {
+    cost
+    remaining
+    resetAt
+  }
+  repository(owner: "KlickInc", name: "klick-genome") {
+    pullRequests(first: 100, states: [OPEN]) {
+      edges {
+        node {
+          number
+          title
+          url
+          headRefName
+          baseRefName
+          createdAt
+          additions
+          deletions
+          mergeable
+          labels(first: 10) {
+            nodes {
+              name
+            }
+          }
+          assignees(first: 10) {
+            edges {
+              node {
+                email
+              }
+            }
+          }
+          reviewRequests(first: 10) {
+            nodes {
+              requestedReviewer {
+                ... on Team {
+                  name
+                }
+                ... on User {
+                  login
+                  createdAt
+                }
+              }
+            }
+          }
+          reviews(first: 10, states: [APPROVED, CHANGES_REQUESTED]) {
+            nodes {
+              createdAt
+              author {
+                login
+              }
+              submittedAt
+              updatedAt
+              state
+            }
+          }
+        }
+      }
+    }
+  }
+}
+GRAPHQL
+
+
+result = GitHubGraphQL::Client.query(PullRequestQuery)
 pp result

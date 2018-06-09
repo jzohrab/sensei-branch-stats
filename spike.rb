@@ -128,6 +128,7 @@ PullRequestQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
           headRefName
           baseRefName
           createdAt
+          updatedAt
           additions
           deletions
           mergeable

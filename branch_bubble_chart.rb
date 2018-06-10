@@ -69,10 +69,13 @@ Dir.chdir('../klick-genome') do |d|
   end
 
   puts "Done\n\n"
-  data.select { |d| d[:linecount] > 0 }.select { |d| d[:stale] <= 20 }.each_with_index do |b, i|
-    puts [ i + 1, b[:branch].gsub('origin/feature/', ''), i + 1, b[:age], b[:file_count], 'feature', b[:linecount] ].join('|')
+  data.
+    select { |d| d[:linecount] > 0 }.
+    select { |d| d[:stale] <= 20 }.
+    sort { |a, b| a[:linecount] <=> b[:linecount] }.
+    reverse.
+    each_with_index do |b, i|
+    puts [ "B#{i + 1}", b[:branch].gsub('origin/feature/', ''), b[:age], b[:file_count], 'feature', b[:linecount] ].join('|')
   end
 
 end
-
-

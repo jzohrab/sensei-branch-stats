@@ -2,7 +2,7 @@
 
 ```
 bundle install
-ruby spike.rb <github token (graphql-spike token)>
+ruby spike_github_graphql.rb <github token (graphql-spike token)>
 ```
 
 returns

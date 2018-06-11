@@ -52,7 +52,7 @@ BranchQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
   repository(owner: "KlickInc", name: "klick-genome") {
 
     # Get first two branches
-    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: 100) {
+    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: 2) {
 
       edges {
 
@@ -119,7 +119,7 @@ PullRequestQuery = GitHubGraphQL::Client.parse <<-'GRAPHQL'
     resetAt
   }
   repository(owner: "KlickInc", name: "klick-genome") {
-    pullRequests(first: 100, states: [OPEN]) {
+    pullRequests(first: 2, states: [OPEN]) {
       edges {
         node {
           number

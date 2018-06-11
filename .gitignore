@@ -1,0 +1,6 @@
+# ignore user's own config files
+*.yml
+
+# ignore generated reports
+*.txt
+

@@ -1,0 +1,6 @@
+# GitHub API creds are read from the environment variable
+# "GITHUB_GRAPHQL_API_TOKEN"; however, if the file github_creds.yml is
+# present and contains that key, that key's value is used instead.
+
+# Copy this file to your own github_creds.yml and edit as needed.
+GITHUB_GRAPHQL_API_TOKEN: your-token-here

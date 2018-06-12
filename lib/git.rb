@@ -144,12 +144,6 @@ HERE
     end
 
 
-    def get_net_stats(base_branch, b)
-      cmd = "git diff #{base_branch}...#{b} --numstat"
-      parse_diff_stats(get_output("git diff #{base_branch}...#{b} --numstat"))
-    end
-
-
     def branch_stats(base_branch, b)
       commits = get_all_commits(base_branch, b)
       have_commits = commits.size() > 0

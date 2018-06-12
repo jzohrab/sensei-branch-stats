@@ -2,7 +2,8 @@ require "graphql/client"
 require "graphql/client/http"
 require 'pp'
 
-require_relative('lib/github_graphql')
+require_relative 'lib/github_graphql'
+require_relative 'lib/git'
 
 
 # Iterative recursion, collect results in all_branches array.
@@ -13,7 +14,7 @@ def collect_branches(client, query, vars, end_cursor, all_branches = [])
     return all_branches if (all_branches.size() > vars[:stopafter].to_i)
   end
   
-  # puts "Calling, currently have #{all_branches.size} branches"
+  $stderr.puts "Fetching #{vars[:resultsize]} branches from GitHub GraphQL ..."
 
   if end_cursor then
     vars[:after] = end_cursor
@@ -135,15 +136,40 @@ pr_data = result.
           map do |pr|
   {
     branch: pr.head_ref_name,
-    number: pr.number,
+    pr_number: pr.number,
     title: pr.title,
     url: pr.url,
-    created: pr.created_at,
-    age: age(pr.created_at),
+    pr_created: pr.created_at,
+    pr_age: age(pr.created_at),
     mergeable: pr.mergeable == 'MERGEABLE',
-    reviews: get_pr_review_data(pr)
+    pr_reviews: get_pr_review_data(pr)
   }
 end
 
-puts branch_data
-puts pr_data
+# puts branch_data
+# puts pr_data
+
+
+g = BranchStatistics::Git.new('../klick-genome')
+n = 0
+commit_stats = branch_data.map do |b|
+  n += 1
+  $stderr.puts "Analyzing branch #{n} of #{branch_data.size}" if (n % 10 == 0)
+  g.branch_stats('origin/develop', "origin/#{b[:name]}")
+end.map do |b|
+  {
+    authors: b[:authors],
+    ahead: b[:ahead],
+    linecount: b[:linecount],
+    filecount: b[:filecount]
+  }
+end
+
+
+result = branch_data.map do |b|
+  pr = pr_data.select { |pr| pr[:branch] == b[:name] }[0]
+  c = commit_stats.select { |c| c[:branch] == b[:name] }[0]
+  b.merge(pr || {}).merge(c || {})
+end
+
+puts result

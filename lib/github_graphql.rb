@@ -9,9 +9,10 @@ class GitHubGraphQL
   def get_configured_http()
     return GraphQL::Client::HTTP.new("https://api.github.com/graphql") do
       def headers(context)
+        b = "bearer #{ENV[GitHubGraphQL::TOKEN]}"
         {
           "User-Agent" => "My Client",
-          "Authorization" => "bearer #{ENV[GitHubGraphQL::TOKEN]}"
+          "Authorization" => b
         }
       end
     end

@@ -18,5 +18,7 @@ task :dump_schema => [:configure_ENV] do
   puts "Dumping schema"
   g = GitHubGraphQL.new()
   g.dump_schema(GitHubGraphQL::SCHEMAFILE)
+  unauthorized = (File.read(GitHubGraphQL::SCHEMAFILE) =~ /401 Unauthorized/)
+  raise "Unauthorized schema dump.  Missing credentials?" if unauthorized
   puts "Dumped schema to #{GitHubGraphQL::SCHEMAFILE}"
 end

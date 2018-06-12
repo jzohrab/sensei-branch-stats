@@ -1,5 +1,7 @@
-require "graphql/client"
-require "graphql/client/http"
+require 'graphql/client'
+require 'graphql/client/http'
+require 'yaml'
+
 
 class GitHubGraphQL
 

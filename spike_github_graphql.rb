@@ -4,49 +4,10 @@ require 'pp'
 
 require_relative('lib/github_graphql')
 
-# include GitHubGraphQL
 
-
-$token = ARGV[0]
-if ($token.nil? || $token == '') then
-  raise "Missing argv 0 token"
-end
-# puts "GOT TOKEN: #{token}"
-
-ENV[GitHubGraphQL::TOKEN] = $token
-puts "GOT ENV = #{ENV[GitHubGraphQL::TOKEN]}"
-
-g = GitHubGraphQL.new()
+g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
 client = g.client()
 
-
-# See https://developer.github.com/v4/explorer/ for helper when creating queries
-
-# 
-# module GitHubGraphQL
-#   # Configure GraphQL endpoint using the basic HTTP network adapter.
-#   HTTP = GraphQL::Client::HTTP.new("https://api.github.com/graphql") do
-#     def headers(context)
-#       # Optionally set any HTTP headers
-#       {
-#         "User-Agent" => "My Client",
-#         "Authorization" => "bearer #{$token}"
-#       }
-#     end
-#   end  
-# 
-#   # Fetch latest schema on init, this will make a network request
-#   Schema = GraphQL::Client.load_schema(HTTP)
-# 
-#   # However, it's smart to dump this to a JSON file and load from disk
-#   #
-#   # Run it from a script or rake task
-#   #   GraphQL::Client.dump_schema(SWAPI::HTTP, "path/to/schema.json")
-#   #
-#   # Schema = GraphQL::Client.load_schema("path/to/schema.json")
-# 
-#   Client = GraphQL::Client.new(schema: Schema, execute: HTTP)
-# end
 
 
 BranchQuery = client.parse <<-'GRAPHQL'
@@ -187,5 +148,5 @@ PullRequestQuery = client.parse <<-'GRAPHQL'
 GRAPHQL
 
   
-result = client.query(PullRequestQuery, context: {auth_token: $token})
+result = client.query(PullRequestQuery)
 pp result

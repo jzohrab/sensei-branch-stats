@@ -5,101 +5,8 @@ require 'pp'
 require_relative('lib/github_graphql')
 
 
-g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
-client = g.client()
-
-
-
-BranchQuery = client.parse <<-'GRAPHQL'
-query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
-  rateLimit {
-    cost
-    remaining
-    resetAt
-  }
-  repository(owner: $owner, name: $repo) {
-    refs(refPrefix: "refs/heads/", orderBy: {direction: ASC, field: ALPHABETICAL}, first: $resultsize, after: $after) {
-      pageInfo {
-        startCursor
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        name
-        target {
-          ... on Commit {
-            oid
-            committedDate
-            committer {
-              email
-            }
-            messageHeadline
-            status {
-              state
-            }
-          }
-        }
-        associatedPullRequests(first: 2, states: [OPEN]) {
-          nodes {
-            number
-            title
-            url
-            headRefName
-            baseRefName
-            createdAt
-            updatedAt
-            additions
-            deletions
-            mergeable
-            labels(first: 10) {
-              nodes {
-                name
-              }
-            }
-            assignees(first: 10) {
-              edges {
-                node {
-                  email
-                }
-              }
-            }
-            reviewRequests(first: 10) {
-              nodes {
-                requestedReviewer {
-                  ... on Team {
-                    name
-                  }
-                  ... on User {
-                    name: login   # Aliasing so User and Team have same field names.
-                  }
-                }
-              }
-            }
-            reviews(first: 50) {
-              nodes {
-                createdAt
-                author {
-                  login
-                }
-                submittedAt
-                updatedAt
-                state
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-GRAPHQL
-
-
 # Iterative recursion, collect results in all_branches array.
-def collect_branches(query, vars, end_cursor, all_branches = [])
-
-  g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
-  client = g.client()
+def collect_branches(client, query, vars, end_cursor, all_branches = [])
 
   # Shortcut during dev
   if vars[:stopafter] then
@@ -118,7 +25,7 @@ def collect_branches(query, vars, end_cursor, all_branches = [])
   all_branches += branches
   paging = result.data.repository.refs.page_info
   if (paging.has_next_page) then
-    collect_branches(query, vars, paging.end_cursor, all_branches)
+    collect_branches(client, query, vars, paging.end_cursor, all_branches)
   else
     return all_branches
   end
@@ -131,13 +38,13 @@ vars = {
   resultsize: 50
 }
 
-## vars = {
-##   owner: 'jeff-zohrab',
-##   repo: 'demo_gitflow',
-##   resultsize: 50
-## }
+g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
+client = g.client()
 
-result = collect_branches(BranchQuery, vars, nil)
+queryfile = File.join(File.dirname(__FILE__), 'queries', 'branches_and_pull_requests.graphql')
+BranchQuery = client.parse(File.read(queryfile))
+  
+result = collect_branches(client, BranchQuery, vars, nil)
 results_hashed = result.map { |n| n.to_h }
 
 outfile = File.join(File.dirname(__FILE__), 'github_graphql_responses', 'response.yml')

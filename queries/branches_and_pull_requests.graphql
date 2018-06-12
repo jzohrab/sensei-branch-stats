@@ -1,0 +1,81 @@
+query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
+  rateLimit {
+    cost
+    remaining
+    resetAt
+  }
+  repository(owner: $owner, name: $repo) {
+    refs(refPrefix: "refs/heads/", orderBy: {direction: ASC, field: ALPHABETICAL}, first: $resultsize, after: $after) {
+      pageInfo {
+        startCursor
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        name
+        target {
+          ... on Commit {
+            oid
+            committedDate
+            committer {
+              email
+            }
+            messageHeadline
+            status {
+              state
+            }
+          }
+        }
+        associatedPullRequests(first: 2, states: [OPEN]) {
+          nodes {
+            number
+            title
+            url
+            headRefName
+            baseRefName
+            createdAt
+            updatedAt
+            additions
+            deletions
+            mergeable
+            labels(first: 10) {
+              nodes {
+                name
+              }
+            }
+            assignees(first: 10) {
+              edges {
+                node {
+                  email
+                }
+              }
+            }
+            reviewRequests(first: 10) {
+              nodes {
+                requestedReviewer {
+                  ... on Team {
+                    name
+                  }
+                  ... on User {
+                    name: login   # Aliasing so User and Team have same field names.
+                  }
+                }
+              }
+            }
+            reviews(first: 50) {
+              nodes {
+                createdAt
+                author {
+                  login
+                }
+                submittedAt
+                updatedAt
+                state
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

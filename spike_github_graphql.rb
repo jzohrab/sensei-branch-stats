@@ -39,7 +39,7 @@ query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
             }
           }
         }
-        associatedPullRequests(first: 5, states: [OPEN]) {
+        associatedPullRequests(first: 2, states: [OPEN]) {
           nodes {
             number
             title
@@ -70,8 +70,7 @@ query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
                     name
                   }
                   ... on User {
-                    login
-                    createdAt
+                    name: login   # Aliasing so User and Team have same field names.
                   }
                 }
               }

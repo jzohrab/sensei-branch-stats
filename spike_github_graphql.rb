@@ -168,7 +168,7 @@ end
 
 result = branch_data.map do |b|
   pr = pr_data.select { |pr| pr[:branch] == b[:name] }[0]
-  c = commit_stats.select { |c| c[:branch] == b[:name] }[0]
+  c = commit_stats.select { |c| c[:branch] == "origin/#{b[:name]}" }[0]
   b.merge(pr || {}).merge(c || {})
 end
 

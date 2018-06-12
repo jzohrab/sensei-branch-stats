@@ -50,22 +50,37 @@ def get_pending_reviews(requests)
   end
 end
 
+# GitHub can return multiple reviews for the same person in some cases -
+# e.g., a person first declines a PR, and then later approves it.
+# For each user, get the latest one only.
 def get_reviews(reviews)
-  reviews.map { |r| r.extend(H) }.map do |r|
+  all_revs = reviews.map { |r| r.extend(H) }.map do |r|
     {
       status: r.state,
       reviewer: r.author.login,
       date: get_yyyymmdd(r.updated_at),
       age: age(r.updated_at)
     }
+  end.map { |r| r.extend(H) }
+  revs_by_person = all_revs.group_by { |r| r[:reviewer] }.values
+  latest_revs = revs_by_person.map do |persons_reviews|
+    persons_reviews.sort { |a, b| a[:date] <=> b[:date] }[-1]
   end
+
+  # if (latest_revs.size() != all_revs.size) then
+  #  puts '------- CONDENSING to latest -------'
+  #  puts "ALL:\n#{all_revs}"
+  #  puts "LATEST:\n#{latest_revs}"
+  # end
+
+  latest_revs
 end
 
 def get_pr_review_data(pr)
-  {
-    pending: get_pending_reviews(pr.review_requests.nodes),
-    done: get_reviews(pr.reviews.nodes)
-  }
+  reviews =
+    get_pending_reviews(pr.review_requests.nodes) +
+    get_reviews(pr.reviews.nodes)
+  reviews
 end
 
 branch_data = branches.map do |branch|

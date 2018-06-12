@@ -4,3 +4,5 @@
 # ignore generated reports
 *.txt
 
+# Schema file is 1.5 mb, don't commit that
+lib/schema.json

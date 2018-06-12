@@ -156,12 +156,13 @@ commit_stats = branch_data.map do |b|
   n += 1
   $stderr.puts "Analyzing branch #{n} of #{branch_data.size}" if (n % 10 == 0)
   g.branch_stats('origin/develop', "origin/#{b[:name]}")
-end.map do |b|
+end.map do |c|
   {
-    authors: b[:authors],
-    ahead: b[:ahead],
-    linecount: b[:linecount],
-    filecount: b[:filecount]
+    branch: c[:branch],
+    authors: c[:authors],
+    ahead: c[:ahead],
+    linecount: c[:linecount],
+    filecount: c[:filecount]
   }
 end
 

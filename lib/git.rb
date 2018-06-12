@@ -106,7 +106,7 @@ HERE
     end
     
     
-    def build_growth_line(commits)
+    def build_growth_hash(commits)
       return {} if commits.size() == 0
     
       linecount_per_day = Hash.new { |h, k| h[k] = 0 }
@@ -116,7 +116,7 @@ HERE
               map { |s| Date.strptime(s, "%Y-%m-%d") }
     
       size_per_day = Hash.new { |h, k| h[k] = 0 }
-      (dates.min..dates.max).to_a.each do |d|
+      (dates.min..Date::today).to_a.each do |d|
         ds = yyyymmdd(d)
         size_per_day[ds] = size_per_day[yyyymmdd(d - 1)] + linecount_per_day[ds]
       end
@@ -133,6 +133,7 @@ HERE
     
     def branch_stats(base_branch, b)
       commits = get_all_commits(base_branch, b)
+      have_commits = commits.size() > 0
 
       additions = commits.map { |c| c[:additions] }.reduce(0, :+)
       deletions = commits.map { |c| c[:deletions] }.reduce(0, :+)
@@ -141,17 +142,16 @@ HERE
         :branch => b,
         :authors => commits.map { |c| c[:author] }.sort.uniq,
         :ahead => commits.size,
-        :first_commit_date => commits[-1][:date],
-        :age => from_today(commits[-1]),
-        :last_commit_date => commits[0][:date],
-        :stale => from_today(commits[0]),
+        :first_commit_date => have_commits ? commits[-1][:date] : nil,
+        :age => have_commits ? from_today(commits[-1]) : nil,
+        :last_commit_date => have_commits ? commits[0][:date] : nil,
+        :stale => have_commits ? from_today(commits[0]) : nil,
         :additions => additions,
         :deletions => deletions,
         :linecount => additions + deletions,
-        :commits => commits
+        :commits => commits,
+        :growth => build_growth_hash(commits)
       }
-
-      reverse_commits = get_output("git log #{base_branch}..#{b} --reverse --date=short --pretty=format:%cd")
 
       ret
     end

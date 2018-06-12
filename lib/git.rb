@@ -139,7 +139,7 @@ HERE
 
       ret = {
         :branch => b,
-        :commits => commits,
+        :authors => commits.map { |c| c[:author] }.sort.uniq,
         :ahead => commits.size,
         :first_commit_date => commits[-1][:date],
         :age => from_today(commits[-1]),
@@ -148,6 +148,7 @@ HERE
         :additions => additions,
         :deletions => deletions,
         :linecount => additions + deletions,
+        :commits => commits
       }
 
       reverse_commits = get_output("git log #{base_branch}..#{b} --reverse --date=short --pretty=format:%cd")

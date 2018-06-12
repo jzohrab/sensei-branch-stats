@@ -11,133 +11,81 @@ client = g.client()
 
 
 BranchQuery = client.parse <<-'GRAPHQL'
-{
-
-  # Check usage stats
-  rateLimit{
-    cost
-    remaining
-    resetAt
-  }
-
-  # Get repo
-  repository(owner: "KlickInc", name: "klick-genome") {
-
-    # Get first two branches
-    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: 2) {
-
-      edges {
-
-        node {
-          ... on Ref {
-            name
-            target {
-              ... on Commit {
-                # Branch head commit, to determine if branch is stale
-                oid  # SHA
-                committedDate
-                committer { email }
-                messageHeadline
-                status { state }
-
-                # History example
-                history(first: 2, since: "2018-06-01T00:00:01") {
-                  edges {
-                    node {
-                      ... on Commit {
-                        committedDate
-                        committer {
-                          email
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-      }
-
-      # Paginate the branches
-      pageInfo {
-        startCursor
-        hasNextPage
-        endCursor
-      }
-
-    }
-  }
-}
-GRAPHQL
-
-
-# result = GitHubGraphQL::Client.query(BranchQuery)
-# pp result
-
-
-
-# ref https://developer.github.com/v4/object/pullrequest/
-
-
-# Limiting the number of PRs to 100.  If we have more than 100 PRs,
-# we're in trouble.
-PullRequestQuery = client.parse <<-'GRAPHQL'
-{
+query($after: String, $resultsize: Int!) {
   rateLimit {
     cost
     remaining
     resetAt
   }
   repository(owner: "KlickInc", name: "klick-genome") {
-    pullRequests(first: 2, states: [OPEN]) {
-      edges {
-        node {
-          number
-          title
-          url
-          headRefName
-          baseRefName
-          createdAt
-          updatedAt
-          additions
-          deletions
-          mergeable
-          labels(first: 10) {
-            nodes {
-              name
+    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: $resultsize, after: $after) {
+      pageInfo {
+        startCursor
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        name
+        target {
+          ... on Commit {
+            oid
+            committedDate
+            committer {
+              email
             }
-          }
-          assignees(first: 10) {
-            edges {
-              node {
-                email
-              }
-            }
-          }
-          reviewRequests(first: 10) {
-            nodes {
-              requestedReviewer {
-                ... on Team {
-                  name
-                }
-                ... on User {
-                  login
-                  createdAt
-                }
-              }
-            }
-          }
-          reviews(first: 10, states: [APPROVED, CHANGES_REQUESTED]) {
-            nodes {
-              createdAt
-              author {
-                login
-              }
-              submittedAt
-              updatedAt
+            messageHeadline
+            status {
               state
+            }
+          }
+        }
+        associatedPullRequests(first: 5, states: [OPEN]) {
+          nodes {
+            number
+            title
+            url
+            headRefName
+            baseRefName
+            createdAt
+            updatedAt
+            additions
+            deletions
+            mergeable
+            labels(first: 10) {
+              nodes {
+                name
+              }
+            }
+            assignees(first: 10) {
+              edges {
+                node {
+                  email
+                }
+              }
+            }
+            reviewRequests(first: 10) {
+              nodes {
+                requestedReviewer {
+                  ... on Team {
+                    name
+                  }
+                  ... on User {
+                    login
+                    createdAt
+                  }
+                }
+              }
+            }
+            reviews(first: 10, states: [APPROVED, CHANGES_REQUESTED]) {
+              nodes {
+                createdAt
+                author {
+                  login
+                }
+                submittedAt
+                updatedAt
+                state
+              }
             }
           }
         }
@@ -147,6 +95,30 @@ PullRequestQuery = client.parse <<-'GRAPHQL'
 }
 GRAPHQL
 
+
+# Iterative recursion, collect results in all_branches array.
+def collect_branches(query, end_cursor, all_branches = [])
+
+  g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
+  client = g.client()
+
+  # Shortcut during dev
+  return all_branches if (all_branches.size() > 0)
   
-result = client.query(PullRequestQuery)
-pp result
+  puts "Calling, currently have #{all_branches.size} branches"
+  result = client.query(query, variables: {after: end_cursor, resultsize: 50})
+  branches = result.data.repository.refs.nodes
+  all_branches += branches
+  paging = result.data.repository.refs.page_info
+  if (paging.has_next_page) then
+    collect_branches(query, paging.end_cursor, all_branches)
+  else
+    return all_branches
+  end
+end
+
+
+result = collect_branches(BranchQuery, nil)
+result.each do |n|
+  puts n.to_h
+end

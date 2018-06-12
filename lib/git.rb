@@ -76,30 +76,44 @@ HERE
     
     def parse_commit_data(s)
       data = s.split("\n")
-    
+      stats = parse_diff_stats(data[2..-1])
       commit_date, sha, author_email = data[0].split('|')
-      
-      raw_file_changes = data[2..-1]
-      file_changes = raw_file_changes.map do |line|
+      {
+        :author => author_email,
+        :date => commit_date,
+        :sha => sha
+      }.merge(stats)
+    end
+
+
+    # Diff stats are as follows:
+    # additions <tab> subtractions <tab> filename
+    def parse_diff_stats(diff_rows)
+      if diff_rows.size() == 0 then
+        {
+          :additions => 0,
+          :deletions => 0,
+          :linecount => 0,
+          :filecount => 0,
+          :changes => 0
+        }
+      end
+
+      file_changes = diff_rows.map do |line|
         add, delete, filename = line.split("\t")
         [add.to_i, delete.to_i, filename]
       end
       additions = file_changes.map { |d| d[0] }.reduce(0, :+)
       deletions = file_changes.map { |d| d[1] }.reduce(0, :+)
-      
       {
-        :author => author_email,
-        :date => commit_date,
-        :sha => sha,
         :additions => additions,
         :deletions => deletions,
         :linecount => additions + deletions,
         :filecount => file_changes.size(),
         :changes => file_changes
       }
-    
     end
-    
+
     
     def yyyymmdd(d)
       return d.strftime("%Y-%m-%d")
@@ -108,7 +122,6 @@ HERE
     
     def build_growth_hash(commits)
       return {} if commits.size() == 0
-    
       linecount_per_day = Hash.new { |h, k| h[k] = 0 }
       commits.each { |c| linecount_per_day[c[:date]] += c[:linecount] }
       dates = commits.
@@ -129,26 +142,32 @@ HERE
       d = Date.strptime(c[:date], "%Y-%m-%d")
       return (Date::today - d).to_i
     end
-    
-    
+
+
+    def get_net_stats(base_branch, b)
+      cmd = "git diff #{base_branch}...#{b} --numstat"
+      parse_diff_stats(get_output("git diff #{base_branch}...#{b} --numstat"))
+    end
+
+
     def branch_stats(base_branch, b)
       commits = get_all_commits(base_branch, b)
       have_commits = commits.size() > 0
 
-      additions = commits.map { |c| c[:additions] }.reduce(0, :+)
-      deletions = commits.map { |c| c[:deletions] }.reduce(0, :+)
+      net_stats = parse_diff_stats(get_output("git diff #{base_branch}...#{b} --numstat"))
 
       ret = {
         :branch => b,
         :authors => commits.map { |c| c[:author] }.sort.uniq,
         :ahead => commits.size,
         :first_commit_date => have_commits ? commits[-1][:date] : nil,
-        :age => have_commits ? from_today(commits[-1]) : nil,
+        :age => have_commits ? from_today(commits[-1]) : 0,
         :last_commit_date => have_commits ? commits[0][:date] : nil,
-        :stale => have_commits ? from_today(commits[0]) : nil,
-        :additions => additions,
-        :deletions => deletions,
-        :linecount => additions + deletions,
+        :stale => have_commits ? from_today(commits[0]) : 0,
+        :additions => net_stats[:additions],
+        :deletions => net_stats[:deletions],
+        :linecount => net_stats[:linecount],
+        :filecount => net_stats[:filecount],
         :commits => commits,
         :growth => build_growth_hash(commits)
       }

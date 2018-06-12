@@ -14,7 +14,7 @@ class GitHubGraphQL
   def self.auth_token()
     token = nil
     if File.exist?(CREDSFILE) then
-      puts "#{CREDSFILE} found"
+      # puts "#{CREDSFILE} found"
       hsh = YAML.load_file(CREDSFILE)
       token = hsh[GitHubGraphQL::TOKEN]
     end

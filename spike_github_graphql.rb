@@ -11,14 +11,14 @@ client = g.client()
 
 
 BranchQuery = client.parse <<-'GRAPHQL'
-query($after: String, $resultsize: Int!) {
+query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
   rateLimit {
     cost
     remaining
     resetAt
   }
-  repository(owner: "KlickInc", name: "klick-genome") {
-    refs(refPrefix: "refs/heads/", orderBy: {direction: DESC, field: TAG_COMMIT_DATE}, first: $resultsize, after: $after) {
+  repository(owner: $owner, name: $repo) {
+    refs(refPrefix: "refs/heads/", orderBy: {direction: ASC, field: ALPHABETICAL}, first: $resultsize, after: $after) {
       pageInfo {
         startCursor
         hasNextPage
@@ -76,7 +76,7 @@ query($after: String, $resultsize: Int!) {
                 }
               }
             }
-            reviews(first: 10, states: [APPROVED, CHANGES_REQUESTED]) {
+            reviews(first: 50) {
               nodes {
                 createdAt
                 author {
@@ -97,28 +97,51 @@ GRAPHQL
 
 
 # Iterative recursion, collect results in all_branches array.
-def collect_branches(query, end_cursor, all_branches = [])
+def collect_branches(query, vars, end_cursor, all_branches = [])
 
   g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
   client = g.client()
 
   # Shortcut during dev
-  return all_branches if (all_branches.size() > 0)
+  if vars[:stopafter] then
+    return all_branches if (all_branches.size() > vars[:stopafter].to_i)
+  end
   
-  puts "Calling, currently have #{all_branches.size} branches"
-  result = client.query(query, variables: {after: end_cursor, resultsize: 50})
+  # puts "Calling, currently have #{all_branches.size} branches"
+
+  if end_cursor then
+    vars[:after] = end_cursor
+  end
+  result = client.query(query, variables: vars)
+  # pp result
+
   branches = result.data.repository.refs.nodes
   all_branches += branches
   paging = result.data.repository.refs.page_info
   if (paging.has_next_page) then
-    collect_branches(query, paging.end_cursor, all_branches)
+    collect_branches(query, vars, paging.end_cursor, all_branches)
   else
     return all_branches
   end
 end
 
 
-result = collect_branches(BranchQuery, nil)
-result.each do |n|
-  puts n.to_h
-end
+vars = {
+  owner: 'KlickInc',
+  repo: 'klick-genome',
+  resultsize: 50
+}
+
+## vars = {
+##   owner: 'jeff-zohrab',
+##   repo: 'demo_gitflow',
+##   resultsize: 50
+## }
+
+result = collect_branches(BranchQuery, vars, nil)
+results_hashed = result.map { |n| n.to_h }
+
+outfile = File.join(File.dirname(__FILE__), 'github_graphql_responses', 'response.yml')
+File.open(outfile, 'w') do |file|
+   file.write results_hashed.to_yaml
+end 

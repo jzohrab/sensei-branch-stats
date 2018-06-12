@@ -1,3 +1,11 @@
+# GitHub spike
+
+
+## Notes
+
+* `github_graphql_responses`: dir for github API call responses (to speed up development)
+
+
 # Spike github graphql
 
 ```

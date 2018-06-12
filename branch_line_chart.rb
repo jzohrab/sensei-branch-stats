@@ -1,8 +1,5 @@
 require_relative 'lib/git'
 
-require 'date'
-require 'pp'
-
 $stderr.sync = true
 $stdout.sync = true
 

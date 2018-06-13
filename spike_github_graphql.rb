@@ -37,9 +37,9 @@ github_config[:resultsize] = 100 if github_config[:resultsize].nil?
 
 
 # Helper during dev.
-def write_cache(result, f)
-  cachefile = File.join(File.dirname(__FILE__), 'cache', f)
-  File.open(cachefile, 'w') do |file|
+def write_result(result, f)
+  rfile = File.join(File.dirname(__FILE__), 'results', f)
+  File.open(rfile, 'w') do |file|
     file.write result
   end
   $stdout.puts "Wrote #{f}"
@@ -113,7 +113,7 @@ end
 
 vars = github_config
 result = GitHubBranchQuery.new().collect_branches(vars)
-write_cache(result.to_yaml, 'response.yml')
+write_result(result.to_yaml, 'response.yml')
 
 
 git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
@@ -129,7 +129,7 @@ result.each do |b|
   c = git.branch_stats("#{remote}/develop", "#{remote}/#{b.name}")
   commit_stats[b.name] = c.slice(:branch, :sha, :authors, :ahead, :linecount, :filecount)
 end
-write_cache(commit_stats.to_yaml, 'commits.yml')
+write_result(commit_stats.to_yaml, 'commits.yml')
 
 # Final transform
 branch_data = result.map do |branch|
@@ -163,4 +163,4 @@ branch_data = result.map do |branch|
   }
 end
 
-write_cache(result.to_yaml, 'result.yml')
+write_result(result.map { |b| b.to_h }.to_yaml, 'result.yml')

@@ -12,7 +12,7 @@
 lib/schema.json
 
 # Temp holding spot for response data
-cache/*.*
+results/*.*
 
 # Library caching
 lib/cache/*.*

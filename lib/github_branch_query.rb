@@ -1,6 +1,6 @@
 require 'yaml'
-# require 'json'
-# require 'ostruct'
+require 'json'
+require 'ostruct'
 
 require_relative 'github_graphql'
 
@@ -25,13 +25,14 @@ class Object
 end
 
 
-# Monkeypatching ... could be problematic
-class Hash
-  def method_missing(m, *args, &blk)
-    fetch(m) { fetch(m.to_s) { super } }
-  end
-end
-
+## # Monkeypatching ... could be problematic.
+## # Replaced in favor of json and openstruct, per
+## # https://stackoverflow.com/questions/6423484/how-do-i-convert-hash-keys-to-method-names
+## class Hash
+##   def method_missing(m, *args, &blk)
+##     fetch(m) { fetch(m.to_s) { super } }
+##   end
+## end
 
 class GitHubBranchQuery
 
@@ -127,17 +128,18 @@ GRAPHQL
 
 
   def collect_branches(vars)
-    cachefile = File.join(File.dirname(__FILE__), 'cache', "BranchQuery_#{vars[:owner]}_#{vars[:repo]}.cache")
+    cachefile = "BranchQuery_#{vars[:owner]}_#{vars[:repo]}.cache"
+    cachepath = File.join(File.dirname(__FILE__), 'cache', cachefile)
     
     $stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
-    result = get_cached_result(cachefile)
+    result = get_cached_result(cachepath)
     if !result.nil? then
-      $stdout.puts "  using cached results"
+      $stdout.puts "  using cached results in #{cachefile}"
       return result
     end
 
     result = collect_branches_iter(BranchQueryDefinition, vars, nil)
-    File.open(cachefile, 'w') do |file|
+    File.open(cachepath, 'w') do |file|
       file.write result.map { |n| n.to_h }.to_yaml
     end
 
@@ -150,7 +152,7 @@ GRAPHQL
     age_in_seconds = (Time.now - File.stat(cachefile).mtime).to_i
     return nil if (age_in_seconds > 10 * 60)
     ret = YAML.load_file(cachefile)
-    ret.map! { |r| r.deep_symbolize_snakified_keys() }
+    ret.map! { |r| JSON.parse(r.deep_symbolize_snakified_keys().to_json, object_class: OpenStruct) }
     ret
   end
 

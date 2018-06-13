@@ -11,3 +11,12 @@ task :dump_schema do
   raise "Unauthorized schema dump.  Missing credentials?" if unauthorized
   puts "Dumped schema to #{GitHubGraphQL::SCHEMAFILE}"
 end
+
+desc "Clear cache"
+task :clear_cache do
+  puts "Clearing cache"
+  Dir.glob(File.join(File.dirname(__FILE__), 'lib', 'cache', '*.cache')).each do |f|
+    puts "  #{f}"
+    File.delete(f)
+  end
+end

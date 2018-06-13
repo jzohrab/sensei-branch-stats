@@ -112,7 +112,7 @@ end
 
 
 vars = github_config
-result = BranchQuery.new().collect_branches(vars)
+result = GitHubBranchQuery.new().collect_branches(vars)
 write_cache(result.to_yaml, 'response.yml')
 
 

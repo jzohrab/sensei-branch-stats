@@ -1,9 +1,39 @@
 require 'yaml'
+# require 'json'
+# require 'ostruct'
 
 require_relative 'github_graphql'
 
 
-class BranchQuery
+# Yaml hash keys are strings, convert to symbols with snake-style naming
+# (e.g., hsh['someThingHere'] => hsh[:some_thing_here]
+# https://stackoverflow.com/questions/800122/best-way-to-convert-strings-to-symbols-in-hash
+class Object
+  def snaky_symbol(s)
+    mapped = s.chars.map do |c|
+      (c.downcase == c) ? c : "_#{c.downcase}"
+    end
+    ret = mapped.join('').gsub(/^_/, '').to_sym
+    ret
+  end
+  
+  def deep_symbolize_snakified_keys
+    return self.inject({}){|memo,(k,v)| memo[snaky_symbol(k)] = v.deep_symbolize_snakified_keys; memo} if self.is_a? Hash
+    return self.inject([]){|memo,v    | memo           << v.deep_symbolize_snakified_keys; memo} if self.is_a? Array
+    return self
+  end
+end
+
+
+# Monkeypatching ... could be problematic
+class Hash
+  def method_missing(m, *args, &blk)
+    fetch(m) { fetch(m.to_s) { super } }
+  end
+end
+
+
+class GitHubBranchQuery
 
     # queryfile = File.join(File.dirname(__FILE__), '..', 'queries', 'branches_and_pull_requests.graphql')
     BranchQueryDefinition = GitHubGraphQL.new(GitHubGraphQL.auth_token()).client.parse <<-GRAPHQL
@@ -97,22 +127,31 @@ GRAPHQL
 
 
   def collect_branches(vars)
+    cachefile = File.join(File.dirname(__FILE__), 'cache', "BranchQuery_#{vars[:owner]}_#{vars[:repo]}.cache")
     
     $stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
-    result = collect_branches_iter(BranchQueryDefinition, vars, nil)
+    result = get_cached_result(cachefile)
+    if !result.nil? then
+      $stdout.puts "  using cached results"
+      return result
+    end
 
-    write_cache(result.to_yaml, "BranchQuery_#{vars[:owner]}_#{vars[:repo]}.cache")
+    result = collect_branches_iter(BranchQueryDefinition, vars, nil)
+    File.open(cachefile, 'w') do |file|
+      file.write result.map { |n| n.to_h }.to_yaml
+    end
+
     return result
   end
 
 
-  # Helper during dev.
-  def write_cache(result, f)
-    cachefile = File.join(File.dirname(__FILE__), 'cache', f)
-    File.open(cachefile, 'w') do |file|
-      file.write result
-    end
-    $stdout.puts "Wrote #{f}"
+  def get_cached_result(cachefile)
+    return nil if !File.exist?(cachefile)
+    age_in_seconds = (Time.now - File.stat(cachefile).mtime).to_i
+    return nil if (age_in_seconds > 10 * 60)
+    ret = YAML.load_file(cachefile)
+    ret.map! { |r| r.deep_symbolize_snakified_keys() }
+    ret
   end
 
 

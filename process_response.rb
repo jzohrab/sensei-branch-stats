@@ -19,7 +19,7 @@ module H
   end
 end
 
-datafile = File.join(File.dirname(__FILE__), 'github_graphql_responses', 'response.yml')
+datafile = File.join(File.dirname(__FILE__), 'cache', 'response.yml')
 
 branches =
   YAML.load_file(datafile).

@@ -115,7 +115,7 @@ BranchQuery = client.parse(File.read(queryfile))
   
 result = collect_branches(client, BranchQuery, vars, nil)
 
-# outfile = File.join(File.dirname(__FILE__), 'github_graphql_responses', 'response.yml')
+# outfile = File.join(File.dirname(__FILE__), 'cache', 'response.yml')
 # write_raw_results_yaml(result, outfile)
 
 

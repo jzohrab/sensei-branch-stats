@@ -8,4 +8,4 @@
 lib/schema.json
 
 # Temp holding spot for response data
-github_graphql_responses/*.*
+cache/*.*

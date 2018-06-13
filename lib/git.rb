@@ -65,11 +65,19 @@ HERE
 
 
     def get_all_commits(base, branch)
-
-      cmd = "git log #{base}..#{branch} --no-merges --date=short --format='COMMIT_START: %cd|%h|%ae' --numstat"
+      # Getting base commit data, including numstat.  Parsing
+      # multiline strings into groups is annoying, so being lazy and
+      # using a delimiter to indicate the start of each commit, and
+      # splitting on that.
+      delimiter = '__COMMIT_START__'
+      cmd = "git log #{base}..#{branch} --no-merges --date=short --format=\"#{delimiter}%cd|%h|%ae\" --numstat"
       raw = get_output(cmd).join("\n")
-      raw_commits = raw.split('COMMIT_START: ').select { |c| c != '' }
-    
+      raw_commits = raw.split(delimiter).select { |c| c != '' }
+
+      log("Command: #{cmd}")
+      log("Split raw commits:")
+      log(raw_commits.inspect)
+
       commits = raw_commits.map { |r| parse_commit_data(r) }
     end
     
@@ -89,8 +97,8 @@ HERE
     # Diff stats are as follows:
     # additions <tab> subtractions <tab> filename
     def parse_diff_stats(diff_rows)
-      if diff_rows.size() == 0 then
-        {
+      if diff_rows.nil? || diff_rows.size() == 0 then
+        return {
           :additions => 0,
           :deletions => 0,
           :linecount => 0,

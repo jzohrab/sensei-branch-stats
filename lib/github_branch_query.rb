@@ -4,36 +4,6 @@ require 'ostruct'
 
 require_relative 'github_graphql'
 
-
-# Yaml hash keys are strings, convert to symbols with snake-style naming
-# (e.g., hsh['someThingHere'] => hsh[:some_thing_here]
-# https://stackoverflow.com/questions/800122/best-way-to-convert-strings-to-symbols-in-hash
-class Object
-  def snaky_symbol(s)
-    mapped = s.chars.map do |c|
-      (c.downcase == c) ? c : "_#{c.downcase}"
-    end
-    ret = mapped.join('').gsub(/^_/, '').to_sym
-    ret
-  end
-  
-  def deep_symbolize_snakified_keys
-    return self.inject({}){|memo,(k,v)| memo[snaky_symbol(k)] = v.deep_symbolize_snakified_keys; memo} if self.is_a? Hash
-    return self.inject([]){|memo,v    | memo           << v.deep_symbolize_snakified_keys; memo} if self.is_a? Array
-    return self
-  end
-end
-
-
-## # Monkeypatching ... could be problematic.
-## # Replaced in favor of json and openstruct, per
-## # https://stackoverflow.com/questions/6423484/how-do-i-convert-hash-keys-to-method-names
-## class Hash
-##   def method_missing(m, *args, &blk)
-##     fetch(m) { fetch(m.to_s) { super } }
-##   end
-## end
-
 class GitHubBranchQuery
 
     # queryfile = File.join(File.dirname(__FILE__), '..', 'queries', 'branches_and_pull_requests.graphql')
@@ -60,7 +30,6 @@ query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
             committer {
               email
             }
-            messageHeadline
             status {
               state
             }
@@ -128,34 +97,10 @@ GRAPHQL
 
 
   def collect_branches(vars)
-    cachefile = "BranchQuery_#{vars[:owner]}_#{vars[:repo]}.cache"
-    cachepath = File.join(File.dirname(__FILE__), 'cache', cachefile)
-    
     $stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
-    result = get_cached_result(cachepath)
-    if !result.nil? then
-      $stdout.puts "  using cached results in #{cachefile}"
-      return result
-    end
-
     result = collect_branches_iter(BranchQueryDefinition, vars, nil)
-    File.open(cachepath, 'w') do |file|
-      file.write result.map { |n| n.to_h }.to_yaml
-    end
-
     return result
   end
-
-
-  def get_cached_result(cachefile)
-    return nil if !File.exist?(cachefile)
-    age_in_seconds = (Time.now - File.stat(cachefile).mtime).to_i
-    return nil if (age_in_seconds > 30 * 60)
-    ret = YAML.load_file(cachefile)
-    ret.map! { |r| JSON.parse(r.deep_symbolize_snakified_keys().to_json, object_class: OpenStruct) }
-    ret
-  end
-
 
   # Iterative recursion, collect results in all_branches array.
   def collect_branches_iter(query, vars, end_cursor, all_branches = [])

@@ -42,6 +42,7 @@ def collect_branches(client, query, vars, end_cursor, all_branches = [])
 
   # Shortcut during dev
   if vars[:stopafter] then
+    $stdout.puts "  stopping early due to 'stopafter', have #{all_branches.size} branches"
     return all_branches if (all_branches.size() > vars[:stopafter].to_i)
   end
   
@@ -53,8 +54,7 @@ def collect_branches(client, query, vars, end_cursor, all_branches = [])
   result = client.query(query, variables: vars)
   # pp result
 
-  branches = result.data.repository.refs.nodes
-  all_branches += branches
+  all_branches += result.data.repository.refs.nodes
   paging = result.data.repository.refs.page_info
   if (paging.has_next_page) then
     collect_branches(client, query, vars, paging.end_cursor, all_branches)
@@ -65,10 +65,12 @@ end
 
 
 # Helper during dev.
-def write_raw_results_yaml(result, write_to)
-  File.open(write_to, 'w') do |file|
-    file.write result.to_yaml
+def write_cache(result, f)
+  cachefile = File.join(File.dirname(__FILE__), 'cache', f)
+  File.open(cachefile, 'w') do |file|
+    file.write result
   end
+  $stdout.puts "Wrote #{f}"
 end
 
 
@@ -146,82 +148,54 @@ BranchQuery = client.parse(File.read(queryfile))
 vars = github_config
 $stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
 result = collect_branches(client, BranchQuery, vars, nil)
-
-# outfile = File.join(File.dirname(__FILE__), 'cache', 'response.yml')
-# write_raw_results_yaml(result, outfile)
-
-
-branch_data = result.map do |branch|
-  {
-    name: branch.name,
-    committer: branch.target.committer.email,
-    last_commit: get_yyyymmdd(branch.target.committed_date),
-    last_commit_age: age(branch.target.committed_date),
-    status: branch.target.status ? branch.target.status.state : nil
-  }
-end
-
-pr_data = result.
-          map { |b| b.associated_pull_requests.nodes }.
-          select { |prs| prs.size() == 1 }.
-          map { |prs| prs[0] }.
-          map do |pr|
-  {
-    branch: pr.head_ref_name,
-    number: pr.number,
-    title: pr.title,
-    url: pr.url,
-    created: pr.created_at,
-    age: age(pr.created_at),
-    mergeable: pr.mergeable == 'MERGEABLE',
-    reviews: get_pr_review_data(pr)
-  }
-end
-
-# puts branch_data
-# puts pr_data
+write_cache(result.to_yaml, 'response.yml')
 
 
 git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
 remote = local_git_config[:remote_name]
-if local_git_config[:fetch] then
-  $stdout.puts "Fetching"
-  git.run("git fetch #{remote}")
-end
-if local_git_config[:prune] then
-  $stdout.puts "Pruning"
-  git.run("git remote prune #{remote}")
-end
+git.fetch_and_prune()
 
-$stdout.puts "Analyzing #{branch_data.size} branches in repo #{local_git_config[:repo_dir]}"
+$stdout.puts "Analyzing #{result.size} branches in repo #{local_git_config[:repo_dir]}"
 n = 0
-commit_stats = branch_data.map do |b|
+commit_stats = {}
+result.each do |b|
   n += 1
-  $stdout.puts "  #{n} of #{branch_data.size}" if (n % 10 == 0)
-  git.branch_stats("#{remote}/develop", "#{remote}/#{b[:name]}")
-end.map do |c|
+  $stdout.puts "  #{n} of #{result.size}" if (n % 10 == 0)
+  c = git.branch_stats("#{remote}/develop", "#{remote}/#{b.name}")
+  commit_stats[b.name] = c.slice(:branch, :sha, :authors, :ahead, :linecount, :filecount)
+end
+write_cache(commit_stats.to_yaml, 'commits.yml')
+
+# Final transform
+branch_data = result.map do |branch|
+  branch_data = {
+      name: branch.name,
+      committer: branch.target.committer.email,
+      last_commit: get_yyyymmdd(branch.target.committed_date),
+      last_commit_age: age(branch.target.committed_date),
+      status: branch.target.status ? branch.target.status.state : nil
+  }
+
+  pr_data = {}
+  if (branch.associated_pull_requests.nodes.size() == 1) then
+    pr = branch.associated_pull_requests.nodes[0]
+    pr_data = {
+      branch: pr.head_ref_name,
+      number: pr.number,
+      title: pr.title,
+      url: pr.url,
+      created: pr.created_at,
+      age: age(pr.created_at),
+      mergeable: pr.mergeable == 'MERGEABLE',
+      reviews: get_pr_review_data(pr)
+    }
+  end
+  
   {
-    branch: c[:branch],
-    authors: c[:authors],
-    ahead: c[:ahead],
-    linecount: c[:linecount],
-    filecount: c[:filecount]
+    branch: branch_data,
+    pr: pr_data,
+    commits: commit_stats[branch.name]
   }
 end
 
-
-result = branch_data.map do |b|
-  {
-    branch: b,
-    pr: pr_data.select { |pr| pr[:branch] == b[:name] }[0],
-    commits: commit_stats.select { |c| c[:branch] == "#{remote}/#{b[:name]}" }[0]
-  }
-end
-
-# puts result
-
-outfile = File.join(File.dirname(__FILE__), 'cache', 'result.yml')
-File.open(outfile, 'w') do |file|
-  file.write result.to_yaml
-end
-puts "Wrote data to #{outfile}"
+write_cache(result.to_yaml, 'result.yml')

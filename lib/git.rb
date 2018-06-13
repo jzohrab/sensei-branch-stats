@@ -63,6 +63,18 @@ HERE
               select { |s| s != '' }
     end
 
+    def fetch_and_prune()
+      remote = @options[:remote_name]
+      if @options[:fetch] then
+        $stdout.puts "Fetching"
+        self.run("git fetch #{remote}")
+      end
+      if @options[:prune] then
+        $stdout.puts "Pruning"
+        self.run("git remote prune #{remote}")
+      end
+    end
+
 
     def get_all_commits(base, branch)
       # Getting base commit data, including numstat.  Parsing
@@ -70,7 +82,7 @@ HERE
       # using a delimiter to indicate the start of each commit, and
       # splitting on that.
       delimiter = '__COMMIT_START__'
-      cmd = "git log #{base}..#{branch} --no-merges --date=short --format=\"#{delimiter}%cd|%h|%ae\" --numstat"
+      cmd = "git log #{base}..#{branch} --no-merges --date=short --format=\"#{delimiter}%cd|%H|%ae\" --numstat"
       raw = get_output(cmd).join("\n")
       raw_commits = raw.split(delimiter).select { |c| c != '' }
 
@@ -160,6 +172,7 @@ HERE
 
       ret = {
         :branch => b,
+        :sha => have_commits ? commits[0][:sha] : nil,
         :authors => commits.map { |c| c[:author] }.sort.uniq,
         :ahead => commits.size,
         :first_commit_date => have_commits ? commits[-1][:date] : nil,

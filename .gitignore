@@ -5,14 +5,11 @@
 # But not any example config files
 !*.yml.example
 
-# ignore generated reports
-*.txt
-
 # Schema file is 1.5 mb, don't commit that
 lib/schema.json
 
 # Temp holding spot for response data
-results/*.*
+results/**/*.*
 
 # Library caching
 lib/cache/*.*

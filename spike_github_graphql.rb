@@ -5,6 +5,21 @@ require 'pp'
 require_relative 'lib/github_graphql'
 require_relative 'lib/git'
 
+############################
+# Config
+
+config = {
+  owner: 'jeff-zohrab',
+  repo: 'demo_gitflow',
+  resultsize: 50,
+}
+
+local_git_config = {
+  repo_dir: '../demo_gitflow',
+  fetch: true,
+  verbose: false
+}
+
 
 # Iterative recursion, collect results in all_branches array.
 def collect_branches(client, query, vars, end_cursor, all_branches = [])
@@ -52,6 +67,12 @@ def get_yyyymmdd(s)
   s.match(/(\d{4}-\d{2}-\d{2})/)[1]
 end
 
+# Review dates are stored as "2018-06-12T13:43:35Z",
+# need date and time to determine the last review.
+def get_yyyymmdd_hhnnss(s)
+  return s.gsub('T', ' ').gsub('Z', '')
+end
+
 def get_pending_reviews(requests)
   # puts "REQ: #{requests}"
   requests.map { |r| r.requested_reviewer }.map do |r|
@@ -72,7 +93,7 @@ def get_reviews(reviews)
     {
       status: r.state,
       reviewer: r.author.login,
-      date: get_yyyymmdd(r.updated_at),
+      date: get_yyyymmdd_hhnnss(r.updated_at),
       age: age(r.updated_at)
     }
   end
@@ -101,18 +122,13 @@ end
 ####################
 
 
-vars = {
-  owner: 'KlickInc',
-  repo: 'klick-genome',
-  resultsize: 50
-}
-
 
 g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
 client = g.client()
 queryfile = File.join(File.dirname(__FILE__), 'queries', 'branches_and_pull_requests.graphql')
 BranchQuery = client.parse(File.read(queryfile))
-  
+
+vars = config
 result = collect_branches(client, BranchQuery, vars, nil)
 
 # outfile = File.join(File.dirname(__FILE__), 'cache', 'response.yml')
@@ -150,12 +166,14 @@ end
 # puts pr_data
 
 
-g = BranchStatistics::Git.new('../klick-genome')
+git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
+git.run('git fetch') if local_git_config[:fetch]
+
 n = 0
 commit_stats = branch_data.map do |b|
   n += 1
   $stderr.puts "Analyzing branch #{n} of #{branch_data.size}" if (n % 10 == 0)
-  g.branch_stats('origin/develop', "origin/#{b[:name]}")
+  git.branch_stats('origin/develop', "origin/#{b[:name]}")
 end.map do |c|
   {
     branch: c[:branch],
@@ -174,3 +192,8 @@ result = branch_data.map do |b|
 end
 
 puts result
+
+outfile = File.join(File.dirname(__FILE__), 'cache', 'result.yml')
+File.open(outfile, 'w') do |file|
+  file.write result.to_yaml
+end

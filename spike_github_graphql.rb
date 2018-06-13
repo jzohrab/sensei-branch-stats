@@ -2,9 +2,8 @@ require 'pp'
 require 'yaml'
 
 require_relative 'lib/github_branch_query'
-require_relative 'config'
 require_relative 'lib/git'
-
+require_relative 'config'
 
 
 ############################

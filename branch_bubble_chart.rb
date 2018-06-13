@@ -1,13 +1,20 @@
 require_relative 'lib/git'
+require_relative 'config'
 
 $stderr.sync = true
 $stdout.sync = true
 
+config_file = ARGV[0]
+full_config = BranchStatistics::Configuration.read_config(config_file)
 
-g = BranchStatistics::Git.new('../klick-genome')
+github_config = full_config[:github]
+local_git_config = full_config[:local_repo]
 
+git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
+remote = local_git_config[:remote_name]
+git.fetch_and_prune()
 
-remote_branches = g.get_output('git branch -r').map { |b| b.strip }
+remote_branches = git.get_output('git branch -r').map { |b| b.strip }
 features =
   remote_branches.
   select { |b| b =~ /feature/ }
@@ -15,11 +22,9 @@ features =
 n = 0
 data = features.map do |b|
   n += 1
-  $stderr.puts " #{b} (#{n} of #{features.size})"
-  g.branch_stats('origin/develop', b)
+  $stderr.puts " #{n} (#{n} of #{features.size})"
+  git.branch_stats('origin/develop', b)
 end
-
-# puts data[0].inspect
 
 puts "Done\n\n"
 
@@ -34,4 +39,3 @@ output = data.
 end
 
 puts output
-

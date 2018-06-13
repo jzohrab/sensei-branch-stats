@@ -1,5 +1,9 @@
 # ignore user's own config files
 *.yml
+*.yml.*
+
+# But not any example config files
+!*.yml.example
 
 # ignore generated reports
 *.txt

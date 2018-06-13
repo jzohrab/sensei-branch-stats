@@ -1,21 +1,23 @@
-# WIP - to be modified
-
 # Copy this file to your own config.yml and edit as needed.
-
-# The sheet that will be used for the report output.
-google_sheets_filename: demo_gitflow_dashboard
-
-# A separate sheet which contains a list of staff members, used to
-# correlate staff with their GitHub account, Git commit author email,
-# etc.
-team_list_sheet_filename: demo_gitflow_dashboard_team
+# You can have multiple config files, eg, config.yml.test, config.yml.genome, etc.
 
 # Branches to use for the report.
-master_branch: master
-develop_branch: develop
-include: [ .*feature.*, .*hotfix.* ]
+report:
+  master_branch: master
+  develop_branch: develop
+  include: [ .*feature.*, .*hotfix.* ]
 
-# API information.
-api_endpoint: https://api.github.com
-org: jeff-zohrab
-repo: demo_gitflow
+# GitHub repo.
+github:
+  owner: jeff-zohrab
+  repo: demo_gitflow
+
+# Local repo
+local_repo:
+  repo_dir: ../demo_gitflow
+  remote_name: origin
+
+  # Optional:
+  fetch: true
+  prune: true
+  verbose: false

@@ -2,50 +2,13 @@ require 'pp'
 require 'yaml'
 
 require_relative 'lib/github_branch_query'
+require_relative 'config'
 require_relative 'lib/git'
 
-############################
-# Config
 
-config_file = ARGV[0]
-if config_file.nil? then
-  puts "Usage: ruby #{$0} <path_to_file>"
-  exit(0)
-end
-raise "Missing config file #{config_file}" if !File.exist?(config_file)
-full_config = YAML.load_file(config_file)
-
-# Yaml hash keys are strings, convert to symbols:
-# https://stackoverflow.com/questions/800122/best-way-to-convert-strings-to-symbols-in-hash
-class Object
-  def deep_symbolize_keys
-    return self.inject({}){|memo,(k,v)| memo[k.to_sym] = v.deep_symbolize_keys; memo} if self.is_a? Hash
-    return self.inject([]){|memo,v    | memo           << v.deep_symbolize_keys; memo} if self.is_a? Array
-    return self
-  end
-end
-full_config = full_config.deep_symbolize_keys
-
-
-github_config = full_config[:github]
-local_git_config = full_config[:local_repo]
-
-# Set defaults
-github_config[:resultsize] = 100 if github_config[:resultsize].nil?
 
 ############################
-
-
-# Helper during dev.
-def write_result(result, f)
-  rfile = File.join(File.dirname(__FILE__), 'results', f)
-  File.open(rfile, 'w') do |file|
-    file.write result
-  end
-  $stdout.puts "Wrote #{f}"
-end
-
-
+# GitHub
 
 def age(s)
   d = Date.strptime(get_yyyymmdd(s), "%Y-%m-%d")
@@ -109,26 +72,52 @@ end
 
 
 ####################
+# Git commits
 
+def get_branch_to_commits(local_git_config, branches)
+  git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
+  remote = local_git_config[:remote_name]
+  git.fetch_and_prune()
+
+  $stdout.puts "Analyzing #{branches.size} branches in repo #{local_git_config[:repo_dir]}"
+  n = 0
+  commit_stats = {}
+  branches.each do |b|
+    n += 1
+    $stdout.puts "  #{n} of #{branches.size}" if (n % 10 == 0)
+    c = git.branch_stats("#{remote}/develop", "#{remote}/#{b}")
+    commit_stats[b] = c.slice(:branch, :sha, :authors, :ahead, :linecount, :filecount)
+  end
+  commit_stats
+end
+
+
+####################
+# Misc
+
+def write_result(result, f)
+  rfile = File.join(File.dirname(__FILE__), 'results', f)
+  File.open(rfile, 'w') do |file|
+    file.write result
+  end
+  $stdout.puts "Wrote #{f}"
+end
+
+
+####################
+# Main
+
+config_file = ARGV[0]
+full_config = BranchStatistics::Configuration.read_config(config_file)
+
+github_config = full_config[:github]
+local_git_config = full_config[:local_repo]
 
 vars = github_config
 result = GitHubBranchQuery.new().collect_branches(vars)
 write_result(result.to_yaml, 'response.yml')
 
-
-git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
-remote = local_git_config[:remote_name]
-git.fetch_and_prune()
-
-$stdout.puts "Analyzing #{result.size} branches in repo #{local_git_config[:repo_dir]}"
-n = 0
-commit_stats = {}
-result.each do |b|
-  n += 1
-  $stdout.puts "  #{n} of #{result.size}" if (n % 10 == 0)
-  c = git.branch_stats("#{remote}/develop", "#{remote}/#{b.name}")
-  commit_stats[b.name] = c.slice(:branch, :sha, :authors, :ahead, :linecount, :filecount)
-end
+commit_stats = get_branch_to_commits(local_git_config, result.map { |r| r.name })
 write_result(commit_stats.to_yaml, 'commits.yml')
 
 # Final transform
@@ -163,4 +152,4 @@ branch_data = result.map do |branch|
   }
 end
 
-write_result(result.map { |b| b.to_h }.to_yaml, 'result.yml')
+write_result(branch_data.map { |b| b.to_h }.to_yaml, 'result.yml')

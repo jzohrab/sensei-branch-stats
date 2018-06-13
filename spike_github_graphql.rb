@@ -1,5 +1,6 @@
 require 'pp'
 require 'yaml'
+require 'fileutils'
 
 require_relative 'lib/github_branch_query'
 require_relative 'lib/git'
@@ -92,14 +93,17 @@ end
 
 
 ####################
-# Misc
+# Generating data source for reports
 
-def write_result(result, f)
-  rfile = File.join(File.dirname(__FILE__), 'results', f)
+def write_result(result, repo, f)
+  repo_folder = File.join(File.dirname(__FILE__), 'results', repo)
+  FileUtils.mkdir_p repo_folder
+
+  rfile = File.join(repo_folder, f)
   File.open(rfile, 'w') do |file|
     file.write result
   end
-  $stdout.puts "Wrote #{f}"
+  $stdout.puts "Wrote results/#{repo}/#{f}"
 end
 
 
@@ -114,10 +118,8 @@ local_git_config = full_config[:local_repo]
 
 vars = github_config
 result = GitHubBranchQuery.new().collect_branches(vars)
-write_result(result.to_yaml, 'response.yml')
 
 commit_stats = get_branch_to_commits(local_git_config, result.map { |r| r.name })
-write_result(commit_stats.to_yaml, 'commits.yml')
 
 # Final transform
 branch_data = result.map do |branch|
@@ -151,4 +153,7 @@ branch_data = result.map do |branch|
   }
 end
 
-write_result(branch_data.map { |b| b.to_h }.to_yaml, 'result.yml')
+repo = github_config[:repo]
+write_result(result.to_yaml, repo, 'github_api_response.yml')
+write_result(commit_stats.to_yaml, repo, 'commits.yml')
+write_result(branch_data.map { |b| b.to_h }.to_yaml, repo, 'result.yml')

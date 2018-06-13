@@ -83,7 +83,7 @@ HERE
       # using a delimiter to indicate the start of each commit, and
       # splitting on that.
       delimiter = '__COMMIT_START__'
-      cmd = "git log #{base}..#{branch} --no-merges --date=short --format=\"#{delimiter}%cd|%H|%ae\" --numstat"
+      cmd = "git log #{base}..#{branch} --date=short --format=\"#{delimiter}%cd|%H|%ae\" --numstat"
       raw = get_output(cmd).join("\n")
       raw_commits = raw.split(delimiter).select { |c| c != '' }
 

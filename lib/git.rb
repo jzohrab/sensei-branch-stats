@@ -14,6 +14,7 @@ module BranchStatistics
 
     def initialize(repo_directory, options = {})
       @repo_dir = repo_directory
+      @cachefileroot = "git_#{@repo_dir.gsub('.', '_').gsub('/', '_')}"
       @options = options
     end
 
@@ -164,7 +165,27 @@ HERE
     end
 
 
+    def get_branch_head(b)
+      sha = "git log #{b} -n 1 --format=%H"
+      return get_output(sha)[0]
+    end
+
+
+    def get_cachepath(base_branch, b)
+      clean = lambda { |b| b.gsub('/', '_') }
+      f = "#{@cachefileroot}_#{base_branch.gsub('/', '_')}_#{b.gsub('/', '_')}.cache"
+      File.join(File.dirname(__FILE__), 'cache', f)
+    end
+    
     def branch_stats(base_branch, b)
+      cachepath = get_cachepath(base_branch, b)
+
+      cached = get_cached_result(cachepath)
+      if (cached && cached[:sha] == get_branch_head(b)) then
+        puts "using cached value for #{b}"
+        return cached
+      end
+      
       commits = get_all_commits(base_branch, b)
       have_commits = commits.size() > 0
 
@@ -187,9 +208,17 @@ HERE
         :growth => build_growth_hash(commits)
       }
 
+      File.open(cachepath, 'w') do |f|
+        f.write ret.to_yaml
+      end
+
       ret
     end
     
+    def get_cached_result(cachefile)
+      return nil if !File.exist?(cachefile)
+      YAML.load_file(cachefile)
+    end
     
   end  # Git
 

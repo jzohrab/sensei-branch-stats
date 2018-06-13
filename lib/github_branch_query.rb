@@ -150,7 +150,7 @@ GRAPHQL
   def get_cached_result(cachefile)
     return nil if !File.exist?(cachefile)
     age_in_seconds = (Time.now - File.stat(cachefile).mtime).to_i
-    return nil if (age_in_seconds > 10 * 60)
+    return nil if (age_in_seconds > 30 * 60)
     ret = YAML.load_file(cachefile)
     ret.map! { |r| JSON.parse(r.deep_symbolize_snakified_keys().to_json, object_class: OpenStruct) }
     ret

@@ -13,3 +13,7 @@ lib/schema.json
 
 # Temp holding spot for response data
 cache/*.*
+
+# Library caching
+lib/cache/*.*
+!lib/cache/README.md

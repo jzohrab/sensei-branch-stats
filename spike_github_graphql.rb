@@ -1,9 +1,7 @@
-require "graphql/client"
-require "graphql/client/http"
 require 'pp'
 require 'yaml'
 
-require_relative 'lib/github_graphql'
+require_relative 'lib/github_branch_query'
 require_relative 'lib/git'
 
 ############################
@@ -36,32 +34,6 @@ local_git_config = full_config[:local_repo]
 github_config[:resultsize] = 100 if github_config[:resultsize].nil?
 
 ############################
-
-# Iterative recursion, collect results in all_branches array.
-def collect_branches(client, query, vars, end_cursor, all_branches = [])
-
-  # Shortcut during dev
-  if vars[:stopafter] then
-    $stdout.puts "  stopping early due to 'stopafter', have #{all_branches.size} branches"
-    return all_branches if (all_branches.size() > vars[:stopafter].to_i)
-  end
-  
-  $stdout.puts "  fetching (currently have #{all_branches.size} branches)"
-
-  if end_cursor then
-    vars[:after] = end_cursor
-  end
-  result = client.query(query, variables: vars)
-  # pp result
-
-  all_branches += result.data.repository.refs.nodes
-  paging = result.data.repository.refs.page_info
-  if (paging.has_next_page) then
-    collect_branches(client, query, vars, paging.end_cursor, all_branches)
-  else
-    return all_branches
-  end
-end
 
 
 # Helper during dev.
@@ -139,15 +111,8 @@ end
 ####################
 
 
-
-g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
-client = g.client()
-queryfile = File.join(File.dirname(__FILE__), 'queries', 'branches_and_pull_requests.graphql')
-BranchQuery = client.parse(File.read(queryfile))
-
 vars = github_config
-$stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
-result = collect_branches(client, BranchQuery, vars, nil)
+result = BranchQuery.new().collect_branches(vars)
 write_cache(result.to_yaml, 'response.yml')
 
 

@@ -45,7 +45,7 @@ def collect_branches(client, query, vars, end_cursor, all_branches = [])
     return all_branches if (all_branches.size() > vars[:stopafter].to_i)
   end
   
-  $stderr.puts "  fetching (currently have #{all_branches.size} branches)"
+  $stdout.puts "  fetching (currently have #{all_branches.size} branches)"
 
   if end_cursor then
     vars[:after] = end_cursor
@@ -145,7 +145,7 @@ queryfile = File.join(File.dirname(__FILE__), 'queries', 'branches_and_pull_requ
 BranchQuery = client.parse(File.read(queryfile))
 
 vars = github_config
-$stderr.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
+$stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
 result = collect_branches(client, BranchQuery, vars, nil)
 
 # outfile = File.join(File.dirname(__FILE__), 'cache', 'response.yml')
@@ -185,14 +185,20 @@ end
 
 git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
 remote = local_git_config[:remote_name]
-git.run("git fetch #{remote}") if local_git_config[:fetch]
-git.run("git remote prune #{remote}") if local_git_config[:prune]
+if local_git_config[:fetch] then
+  $stdout.puts "Fetching"
+  git.run("git fetch #{remote}")
+end
+if local_git_config[:prune] then
+  $stdout.puts "Pruning"
+  git.run("git remote prune #{remote}")
+end
 
-$stderr.puts "Analyzing #{branch_data.size} branches in repo #{local_git_config[:repo_dir]}"
+$stdout.puts "Analyzing #{branch_data.size} branches in repo #{local_git_config[:repo_dir]}"
 n = 0
 commit_stats = branch_data.map do |b|
   n += 1
-  $stderr.puts "  #{n} of #{branch_data.size}" if (n % 10 == 0)
+  $stdout.puts "  #{n} of #{branch_data.size}" if (n % 10 == 0)
   git.branch_stats("#{remote}/develop", "#{remote}/#{b[:name]}")
 end.map do |c|
   {

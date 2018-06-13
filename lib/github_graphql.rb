@@ -62,7 +62,7 @@ HERE
     if (File.exist?(GitHubGraphQL::SCHEMAFILE))
       schema = GraphQL::Client.load_schema(GitHubGraphQL::SCHEMAFILE)
     else
-      $stderr.puts "Fetching schema from GitHub ... consider running dump_schema to optimize"
+      $stdout.puts "Fetching schema from GitHub ... (NOTE: run 'rake dump_schema' to optimize)"
       schema = GraphQL::Client.load_schema(http)
     end
     client = GraphQL::Client.new(schema: schema, execute: http)

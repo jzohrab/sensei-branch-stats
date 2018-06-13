@@ -47,6 +47,15 @@ def gen_branches(data, filename)
   puts "Wrote #{filename}"
 end
 
+
+def gen_pull_requests(data, filename)
+
+# <span style="color:red">**X**</span>
+# <span style="color:green">**O**</span>
+# <span style="color:orange">**?**</span>
+
+end
+
 #################################
 
 folder = ARGV[0]

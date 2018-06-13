@@ -66,9 +66,8 @@ end
 
 # Helper during dev.
 def write_raw_results_yaml(result, write_to)
-  results_hashed = result.map { |n| n.to_h }
   File.open(write_to, 'w') do |file|
-    file.write results_hashed.to_yaml
+    file.write result.to_yaml
   end
 end
 
@@ -169,13 +168,13 @@ pr_data = result.
           map do |pr|
   {
     branch: pr.head_ref_name,
-    pr_number: pr.number,
+    number: pr.number,
     title: pr.title,
     url: pr.url,
-    pr_created: pr.created_at,
-    pr_age: age(pr.created_at),
+    created: pr.created_at,
+    age: age(pr.created_at),
     mergeable: pr.mergeable == 'MERGEABLE',
-    pr_reviews: get_pr_review_data(pr)
+    reviews: get_pr_review_data(pr)
   }
 end
 
@@ -212,9 +211,11 @@ end
 
 
 result = branch_data.map do |b|
-  pr = pr_data.select { |pr| pr[:branch] == b[:name] }[0]
-  c = commit_stats.select { |c| c[:branch] == "#{remote}/#{b[:name]}" }[0]
-  b.merge(pr || {}).merge(c || {})
+  {
+    branch: b,
+    pr: pr_data.select { |pr| pr[:branch] == b[:name] }[0],
+    commits: commit_stats.select { |c| c[:branch] == "#{remote}/#{b[:name]}" }[0]
+  }
 end
 
 # puts result

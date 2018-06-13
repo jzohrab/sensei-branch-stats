@@ -170,10 +170,9 @@ HERE
       return get_output(sha)[0]
     end
 
-
     def get_cachepath(base_branch, b)
       clean = lambda { |b| b.gsub('/', '_') }
-      f = "#{@cachefileroot}_#{base_branch.gsub('/', '_')}_#{b.gsub('/', '_')}.cache"
+      f = "#{@cachefileroot}_#{clean.call(base_branch)}_#{clean.call(b)}.cache"
       File.join(File.dirname(__FILE__), 'cache', f)
     end
     
@@ -182,10 +181,11 @@ HERE
 
       cached = get_cached_result(cachepath)
       if (cached && cached[:sha] == get_branch_head(b)) then
-        puts "using cached value for #{b}"
+        log "using cached value for #{b}"
         return cached
       end
-      
+      log "missing or stale cache for #{b}"
+
       commits = get_all_commits(base_branch, b)
       have_commits = commits.size() > 0
 

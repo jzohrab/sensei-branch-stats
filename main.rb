@@ -65,10 +65,11 @@ BranchStatistics::GenerateReports.generate_all(branch_data, folder)
 BranchStatistics::GenerateCharts.generate_all(git, folder)
 
 # Post to wiki
+$stdout.puts "Posting"
 wiki_token = BranchStatistics::Credentials.SENSEI_WIKI_API_TOKEN
 poster = BranchStatistics::WikiPost.new(wiki_token)
 $stdout.puts "No post information configured" unless full_config[:wiki_post]
 (full_config[:wiki_post] || []).each do |post|
-  $stdout.puts "POSTING!"
-  $stdout.puts post.inspect
+  $stdout.puts "  #{post[:file]} to #{post[:pageid]}"
+  poster.post(post[:pageid], post[:title], File.join(folder, post[:file]))
 end

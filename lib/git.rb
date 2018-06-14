@@ -93,12 +93,17 @@ HERE
       log(raw_commits.inspect)
 
       commits = raw_commits.map { |r| parse_commit_data(r) }
+      log("Parsed commits:")
+      log(commits.inspect)
+      commits
     end
     
     
-    def parse_commit_data(s)
-      data = s.split("\n")
-      stats = parse_diff_stats(data[2..-1])
+    def parse_commit_data(raw)
+      data = raw.split("\n").map { |s| s.strip }.select { |s| s != '' }
+      add_remove = data[1..-1]
+      log("will get stats from: #{add_remove.inspect}")
+      stats = parse_diff_stats(add_remove)
       commit_date, sha, author_email = data[0].split('|')
       {
         :author => author_email,
@@ -180,6 +185,9 @@ HERE
     end
     
     def branch_stats(base_branch, b)
+      # Sometimes want to debug a single branch.
+      @options[:verbose] = (b =~ /#{@options[:verbose_on_branchname]}/) if @options[:verbose_on_branchname]
+
       cachepath = get_cachepath(base_branch, b)
 
       cached = get_cached_result(cachepath)

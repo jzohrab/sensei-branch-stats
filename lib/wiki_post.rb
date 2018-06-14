@@ -26,7 +26,7 @@ module BranchStatistics
     
     def post(pageid, title, filename)
 
-      raise 'Missing arg' if [pageid, title, file].any? { |a| a.nil? }
+      raise 'Missing arg' if [pageid, title, filename].any? { |a| a.nil? }
       raise "Missing file #{filename}" if !File.exist?(filename)
 
       content = File.read(filename)

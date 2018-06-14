@@ -107,8 +107,6 @@ module BranchStatistics
                map { |d| create_row.call(d) }
 
         File.open(filename, 'w') do |f|
-          f.puts "# Branches"
-          f.puts
           put_markdown_table(f, headings, rows, :last_commit_SORT_KEY, false)
         end
         puts "Wrote #{filename}"
@@ -144,9 +142,7 @@ module BranchStatistics
           map { |d| create_row.call(d) }
 
         File.open(filename, 'w') do |f|
-          f.puts "# Pull Requests"
-          f.puts
-          f.puts "Key: c = passes CI; m = mergeable (no conflicts); r = reviews"
+          f.puts "**Key**: c = passes CI; m = mergeable (no conflicts); r = reviews"
           f.puts
           put_markdown_table(f, headings, rows, :age_SORT_KEY, true)
         end

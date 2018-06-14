@@ -25,6 +25,14 @@ git.fetch_and_prune()
 remote_branches = result.map { |b| "#{remote}/#{b.name}" }
 commit_stats = git.all_branch_basic_stats("#{remote}/develop", remote_branches)
 
+# all_branch_basic_stats is a hash, and the key includes the remote
+# name.  Remove it so that the stats can be matched with the result
+# from GitHub, which doesn't have the remote name in branch.name.
+commit_stats.keys().each do |k|
+  commit_stats[k.gsub("#{remote}/", '')] = commit_stats[k]
+end
+
+
 # Transform
 
 branch_data = BranchStatistics::Transform.transform(result, commit_stats)

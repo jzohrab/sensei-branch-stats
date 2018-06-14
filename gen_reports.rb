@@ -163,7 +163,7 @@ module BranchStatistics
           c = d[:commits]
           pr = d[:pr]
 
-          branch_title = "#{b[:name]}<br /><span style='font-size: 10px'>#{authors(d, ', ')}</span>"
+          branch_title = "#{b[:name]}<br /><span style='font-size: 12px;'>#{authors(d, ', ')}</span>"
           pr_link = pr[:number] ? "[#{pr[:number]}](#{pr[:url]})" : ''
           reviews = pr[:reviews] || [{}]
           rev_statuses = reviews.map { |r| r[:status] }.select { |r| r != 'COMMENTED' }

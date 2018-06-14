@@ -16,6 +16,7 @@ module BranchStatistics
       @repo_dir = repo_directory
       @cachefileroot = "git_#{@repo_dir.gsub('.', '_').gsub('/', '_')}"
       @options = options
+      @localrefs = get_output('git show-ref --head')
     end
 
     def log(s)
@@ -166,8 +167,10 @@ HERE
 
 
     def get_branch_head(b)
-      sha = "git log #{b} -n 1 --format=%H"
-      return get_output(sha)[0]
+      record = @localrefs.select { |r| r =~ /#{b}/ }[0] || ''
+      return record if record == ''
+      localref = record.strip()[0..39]
+      return localref
     end
 
     def get_cachepath(base_branch, b)

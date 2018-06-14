@@ -54,7 +54,7 @@ module BranchStatistics
         StatusImage.Green
       when 'no', 'bad', 'CHANGES_REQUESTED', 'FAILURE', 'false', false
         StatusImage.Red
-      when 'PENDING', nil
+      when 'PENDING', 'UNKNOWN', nil
         StatusImage.Yellow
       else
         s
@@ -114,12 +114,13 @@ module BranchStatistics
 
 
       def gen_pull_requests(data, filename)
-        headings = [:status, :pull_request, :created, :c_m_r]
+        headings = [:status, :pull_request, :created, :c, :m, :r]
         create_row = lambda do |d|
           pr = d[:pr]
           title = "[#{pr[:number]}: #{pr[:title]}](#{pr[:url]})"
           title = "#{title}<br />#{authors(d, ', ')}"
           revs = pr[:reviews].map { |r| r[:status] }.select { |r| r != 'COMMENTED' }
+
           row = {
             pull_request: title,
             branch: d[:branch][:name],

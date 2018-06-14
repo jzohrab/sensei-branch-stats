@@ -29,7 +29,12 @@ module BranchStatistics
               url: pr.url,
               created: get_yyyymmdd(pr.created_at),
               age: age(pr.created_at),
-              mergeable: pr.mergeable == 'MERGEABLE',
+
+              # Sometimes the GitHub API returns "UNKNOWN" when
+              # checking mergeability.  Assume it's mergeable.
+              # Conflicts will be blocked later anyway.
+              mergeable: ['MERGEABLE', 'UNKNOWN'].include?(pr.mergeable),
+
               reviews: get_pr_review_data(pr)
             }
           end

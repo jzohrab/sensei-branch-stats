@@ -30,6 +30,7 @@ module BranchStatistics
         end
 
         changed_since = 60
+        chart_days = 14
 
         largest_20 = data.
                  select { |d| d[:linecount] > 0 }.
@@ -37,14 +38,14 @@ module BranchStatistics
                  sort { |a, b| a[:linecount] <=> b[:linecount] }.
                  reverse[0..19]
 
-        last_20_days = ((Date::today-20)..Date::today).to_a.map { |d| d.strftime("%Y-%m-%d") }
+        report_days = ((Date::today-chart_days)..Date::today).to_a.map { |d| d.strftime("%Y-%m-%d") }
         largest_20_size_per_day = largest_20.map do |b|
           display_name = b[:branch].gsub('origin/feature/', '')
-          growth = last_20_days.map { |d| b[:growth][d] }
+          growth = report_days.map { |d| b[:growth][d] }
           [display_name, growth].flatten
         end
 
-        table = [ [ 'branches', last_20_days ].flatten ] +
+        table = [ [ 'branches', report_days ].flatten ] +
                 largest_20_size_per_day
         chart_data = table.transpose.map { |row| row.join(',') }
 

@@ -1,3 +1,5 @@
+require 'pp'
+
 $stderr.sync = true
 $stdout.sync = true
 
@@ -39,9 +41,13 @@ module BranchStatistics
 
 
         all_dates = data.map { |f| f[:growth].keys }.flatten.sort.uniq
-        last_20_days = all_dates[-20..-1]
-
+        # last_20_days = all_dates[-20..-1]
+        last_20_days = ((Date::today-20)..Date::today).to_a.map { |d| d.strftime("%Y-%m-%d") }
+        pp last_20_days
+        pp data
+        puts '-' * 20
         fd = data.map do |f|
+          pp f
           growth = last_20_days.map { |d| f[:growth][d] }
           [ f[:branch].gsub('origin/feature/', ''), growth].flatten
         end

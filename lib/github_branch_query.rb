@@ -3,10 +3,15 @@ require 'json'
 require 'ostruct'
 
 require_relative 'github_graphql'
+require_relative 'credentials'
 
-class GitHubBranchQuery
+module BranchStatistics
 
-    BranchQueryDefinition = GitHubGraphQL.new(GitHubGraphQL.auth_token()).client.parse <<-GRAPHQL
+  class GitHubBranchQuery
+
+    auth_token = BranchStatistics::Credentials.GITHUB_GRAPHQL_API_TOKEN
+    
+    BranchQueryDefinition = GitHubGraphQL.new(auth_token).client.parse <<-GRAPHQL
 query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
   rateLimit {
     cost
@@ -89,45 +94,45 @@ query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
 }
 GRAPHQL
 
-  def initialize()
-    g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
-    @client = g.client()
-  end
+    def initialize(auth_token)
+      g = GitHubGraphQL.new(auth_token)
+      @client = g.client()
+    end
 
 
-  def collect_branches(vars)
-    $stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
-    result = collect_branches_iter(BranchQueryDefinition, vars, nil)
-    return result
-  end
+    def collect_branches(vars)
+      $stdout.puts "Fetching branches from GitHub GraphQL, in sets of #{vars[:resultsize]} branches"
+      result = collect_branches_iter(BranchQueryDefinition, vars, nil)
+      return result
+    end
 
-  # Iterative recursion, collect results in all_branches array.
-  def collect_branches_iter(query, vars, end_cursor, all_branches = [])
-  
-    # Shortcut during dev
-    if vars[:stopafter] then
-      $stdout.puts "  stopping early due to 'stopafter', have #{all_branches.size} branches"
-      return all_branches if (all_branches.size() > vars[:stopafter].to_i)
+    # Iterative recursion, collect results in all_branches array.
+    def collect_branches_iter(query, vars, end_cursor, all_branches = [])
+      
+      # Shortcut during dev
+      if vars[:stopafter] then
+        $stdout.puts "  stopping early due to 'stopafter', have #{all_branches.size} branches"
+        return all_branches if (all_branches.size() > vars[:stopafter].to_i)
+      end
+      
+      $stdout.puts "  fetching (currently have #{all_branches.size} branches)"
+      
+      if end_cursor then
+        vars[:after] = end_cursor
+      end
+      result = @client.query(query, variables: vars)
+      # pp result
+      
+      all_branches += result.data.repository.refs.nodes
+      paging = result.data.repository.refs.page_info
+      if (paging.has_next_page) then
+        collect_branches_iter(query, vars, paging.end_cursor, all_branches)
+      else
+        return all_branches
+      end
     end
     
-    $stdout.puts "  fetching (currently have #{all_branches.size} branches)"
-  
-    if end_cursor then
-      vars[:after] = end_cursor
-    end
-    result = @client.query(query, variables: vars)
-    # pp result
-  
-    all_branches += result.data.repository.refs.nodes
-    paging = result.data.repository.refs.page_info
-    if (paging.has_next_page) then
-      collect_branches_iter(query, vars, paging.end_cursor, all_branches)
-    else
-      return all_branches
-    end
-  end
-  
-  
-end  # class BranchQuery
+    
+  end  # class BranchQuery
 
-
+end # module

@@ -1,0 +1,7 @@
+# Sample credentials file.
+# If this file is present, it's used, otherwise code looks in the environment.
+# Copy this file, rename to creds.yml, and fill in the values.
+
+GITHUB_GRAPHQL_API_TOKEN: <your_token>
+
+SENSEI_WIKI_API_TOKEN: <your_token>

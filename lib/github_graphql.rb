@@ -5,24 +5,7 @@ require 'yaml'
 
 class GitHubGraphQL
 
-  TOKEN = 'GITHUB_GRAPHQL_API_TOKEN'
-  CREDSFILE = File.join(File.dirname(__FILE__), 'github_creds.yml')
   SCHEMAFILE = File.join(File.dirname(__FILE__), 'schema.json')
-
-  # Reads the auth token from config file.  If not available, falls
-  # back to environment.
-  def self.auth_token()
-    token = nil
-    if File.exist?(CREDSFILE) then
-      # puts "#{CREDSFILE} found"
-      hsh = YAML.load_file(CREDSFILE)
-      token = hsh[GitHubGraphQL::TOKEN]
-    end
-    token = ENV[GitHubGraphQL::TOKEN] if token.nil?
-    raise "Missing token in env and creds file" if token.nil?
-    token
-  end
-
 
   class CachingHTTP < GraphQL::Client::HTTP
     def initialize(uri, token)

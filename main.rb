@@ -3,6 +3,8 @@ require 'fileutils'
 
 require_relative 'lib/github_branch_query'
 require_relative 'lib/git'
+require_relative 'lib/wiki_post'
+require_relative 'lib/credentials'
 require_relative 'config'
 require_relative 'transform'
 require_relative 'gen_reports'
@@ -18,8 +20,9 @@ github_config = full_config[:github]
 local_git_config = full_config[:local_repo]
 
 # Fetch
-
-result = GitHubBranchQuery.new().collect_branches(github_config)
+github_token = BranchStatistics::Credentials.GITHUB_GRAPHQL_API_TOKEN
+bq = BranchStatistics::GitHubBranchQuery.new(github_token)
+result = bq.collect_branches(github_config)
 
 git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
 remote = local_git_config[:remote_name]
@@ -60,3 +63,12 @@ end
 folder = File.join('results', github_config[:repo])
 BranchStatistics::GenerateReports.generate_all(branch_data, folder)
 BranchStatistics::GenerateCharts.generate_all(git, folder)
+
+# Post to wiki
+wiki_token = BranchStatistics::Credentials.SENSEI_WIKI_API_TOKEN
+poster = BranchStatistics::WikiPost.new(wiki_token)
+$stdout.puts "No post information configured" unless full_config[:wiki_post]
+(full_config[:wiki_post] || []).each do |post|
+  $stdout.puts "POSTING!"
+  $stdout.puts post.inspect
+end

@@ -6,7 +6,6 @@ require_relative 'github_graphql'
 
 class GitHubBranchQuery
 
-    # queryfile = File.join(File.dirname(__FILE__), '..', 'queries', 'branches_and_pull_requests.graphql')
     BranchQueryDefinition = GitHubGraphQL.new(GitHubGraphQL.auth_token()).client.parse <<-GRAPHQL
 query($after: String, $resultsize: Int!, $owner: String!, $repo: String!) {
   rateLimit {

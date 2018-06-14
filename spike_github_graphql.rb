@@ -86,7 +86,7 @@ def get_branch_to_commits(local_git_config, branches)
     n += 1
     $stdout.puts "  #{n} of #{branches.size}" if (n % 10 == 0)
     c = git.branch_stats("#{remote}/develop", "#{remote}/#{b}")
-    commit_stats[b] = c.slice(:branch, :sha, :authors, :ahead, :linecount, :filecount)
+    commit_stats[b] = c.slice(:branch, :sha, :authors, :ahead, :additions, :deletions, :filecount)
   end
   commit_stats
 end

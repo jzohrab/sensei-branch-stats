@@ -139,7 +139,7 @@ branch_data = result.map do |branch|
       number: pr.number,
       title: pr.title,
       url: pr.url,
-      created: pr.created_at,
+      created: get_yyyymmdd(pr.created_at),
       age: age(pr.created_at),
       mergeable: pr.mergeable == 'MERGEABLE',
       reviews: get_pr_review_data(pr)

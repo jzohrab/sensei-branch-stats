@@ -9,7 +9,10 @@ require "active_support/notifications"
 #################################
 
 def put_markdown_table(ostream, headings, rows, order_by = nil, ascending = true)
-  print_lin = lambda { |a| ostream.puts "| #{a.join(' | ')} |" }
+  print_lin = lambda do |a|
+    cleaned_a = a.map { |el| el.to_s.gsub('|', '-') }
+    ostream.puts "| #{cleaned_a.join(' | ')} |"
+  end
   # ostream.puts "<div style=\"font-size:10px\">"
   # ostream.puts  # Space after div is required for wiki
   print_headings =
@@ -92,16 +95,16 @@ class StatusImage
     [StatusImage.Red, StatusImage.Yellow, StatusImage.Green].each do |s|
       return s if syms.include?(s)
     end
-    nil
+    StatusImage.Yellow  # Fallback
   end
 
 end
 
 
-def authors(data)
+def authors(data, join_with = '<br />')
   data[:commits][:authors].
     map { |a| a.gsub(/@.*/, '') }.
-    join('<br />')
+    join(join_with)
 end
 
 
@@ -140,21 +143,25 @@ end
 
 
 def gen_pull_requests(data, filename)
-  headings = [:pull_request, :branch, :authors, :created, :ci, :mergeable, :reviews]
+  headings = [:status, :pull_request, :created, :c_m_r]
   create_row = lambda do |d|
     pr = d[:pr]
+    title = "[#{pr[:number]}: #{pr[:title]}](#{pr[:url]})"
+    title = "#{title}<br />#{authors(d, ', ')}"
     revs = pr[:reviews].map { |r| r[:status] }.select { |r| r != 'COMMENTED' }
     row = {
-      pull_request: "[#{pr[:number]}: #{pr[:title]}](#{pr[:url]})",
+      pull_request: title,
       branch: d[:branch][:name],
       authors: authors(d),
-      created: pr[:created],
-      ci: StatusImage.symbolize(d[:branch][:status]),
-      mergeable: StatusImage.symbolize(pr[:mergeable]),
-      reviews: StatusImage.worst_of(revs),
+      created: pr[:created].gsub(/^20/, ''),
+      c: StatusImage.symbolize(d[:branch][:status]),
+      m: StatusImage.symbolize(pr[:mergeable]),
+      r: StatusImage.worst_of(revs),
       age_SORT_KEY: pr[:age]
     }
     row[:created].flag_if!(pr[:age] > 20)
+    row[:c_m_r] = [:c, :m, :r].map { |sym| row[sym] }.join('')
+    row[:status] = StatusImage.worst_of([:c, :m, :r].map { |sym| row[sym] })
     row
   end
 
@@ -166,7 +173,9 @@ def gen_pull_requests(data, filename)
   File.open(filename, 'w') do |f|
     f.puts "# Pull Requests"
     f.puts
-    put_markdown_table(f, headings, rows, :age_SORT_KEY, false)
+    f.puts "Key: c = passes CI; m = mergeable (no conflicts); r = reviews"
+    f.puts
+    put_markdown_table(f, headings, rows, :age_SORT_KEY, true)
   end
   puts "Wrote #{filename}"
 end

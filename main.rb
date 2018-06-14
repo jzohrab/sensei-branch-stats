@@ -5,7 +5,7 @@ require_relative 'lib/github_branch_query'
 require_relative 'lib/git'
 require_relative 'config'
 require_relative 'transform'
-
+require_relative 'gen_reports'
 
 # Config
 
@@ -51,3 +51,10 @@ branch_data = BranchStatistics::Transform.transform(result, commit_stats)
   File.open(fullpath, 'w') { |file| file.write result }
   $stdout.puts "Wrote #{f}"
 end
+
+
+# Report
+
+folder = File.join('results', github_config[:repo])
+# data = YAML.load_file(result_path)
+BranchStatistics::GenerateReports.generate_all(branch_data, folder)

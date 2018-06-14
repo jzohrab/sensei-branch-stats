@@ -1,43 +1,30 @@
 # GitHub spike
 
 
-## Notes
-
-* `github_graphql_responses`: dir for github API call responses (to speed up development)
-
-
-# Spike github graphql
+## Environment setup
 
 ```
 bundle install
-ruby spike_github_graphql.rb <github token (graphql-spike token)>
 ```
 
-returns
+or manually install the gems in the gemfile:
 
 ```
-#<GraphQL::Client::Response:0x0000000007fa2150
- @data=#< rateLimit=... repository=...>,
- @errors=#<GraphQL::Client::Errors @messages={} @details={}>,
- @extensions=nil,
- @original_hash=
-  {"data"=>
-    {"rateLimit"=>
-      {"cost"=>1, "remaining"=>4990, "resetAt"=>"2018-06-08T22:23:20Z"},
-     "repository"=>
-      {"refs"=>
-        {"edges"=>
-          [{"node"=>
-             {"name"=>"wip/1346200-remove-new-keyword-warnings",
-              "target"=>{"__typename"=>"Commit", "history"=>{"edges"=>[]}}}},
-           {"node"=>
-             {"name"=>"wip/1219370",
-              "target"=>{"__typename"=>"Commit", "history"=>{"edges"=>[]}}}}],
-         "pageInfo"=>
-          {"startCursor"=>"MQ==",
-           "hasNextPage"=>true,
-           "endCursor"=>"Mg=="}}}}}>
+gem install graphql-client
+# ... etc
 ```
+
+## Config
+
+Copy config.yml.example to another file (any filename is fine), and edit it for your GitHub and local repo.
+
+
+## Running
+
+```
+ruby main.rb config.yml.example
+```
+
 
 ## Notes
 

@@ -219,7 +219,21 @@ HERE
       return nil if !File.exist?(cachefile)
       YAML.load_file(cachefile)
     end
-    
+
+
+    def all_branch_basic_stats(base_branch, branches)
+      $stdout.puts "Analyzing #{branches.size} branches"
+      n = 0
+      commit_stats = {}
+      branches.each do |b|
+        n += 1
+        $stdout.puts "  #{n} of #{branches.size}" if (n % 10 == 0)
+        c = self.branch_stats(base_branch, b)
+        commit_stats[b] = c.slice(:branch, :sha, :authors, :ahead, :additions, :deletions, :filecount)
+      end
+      commit_stats
+    end
+
   end  # Git
 
 end

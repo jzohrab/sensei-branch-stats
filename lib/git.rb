@@ -185,6 +185,8 @@ HERE
       cached = get_cached_result(cachepath)
       if (cached && cached[:sha] == get_branch_head(b)) then
         log "using cached value for #{b}"
+        # Recalc growth line, which stores dates up to today.
+        cached[:growth] = build_growth_hash(cached[:commits])
         return cached
       end
       log "missing or stale cache for #{b}"

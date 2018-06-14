@@ -6,6 +6,8 @@ require_relative 'lib/git'
 require_relative 'config'
 require_relative 'transform'
 require_relative 'gen_reports'
+require_relative 'gen_charts'
+
 
 # Config
 
@@ -53,8 +55,8 @@ branch_data = BranchStatistics::Transform.transform(result, commit_stats)
 end
 
 
-# Report
+# Create reports and charts
 
 folder = File.join('results', github_config[:repo])
-# data = YAML.load_file(result_path)
 BranchStatistics::GenerateReports.generate_all(branch_data, folder)
+BranchStatistics::GenerateCharts.generate_all(git, folder)

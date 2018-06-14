@@ -12,9 +12,9 @@ class String
     "<span style=\"color:red\">**#{self}**</span>"
   end
   
-  def flag_if!(b)
+  def flag_if(b)
     return self if !b
-    self.replace(flag)
+    return flag()
   end
 end
 
@@ -27,7 +27,7 @@ module BranchStatistics
 
     def initialize(status)
       @status = status
-      @img = "<svg width='20' height='20'><circle cx='10' cy='10' r='8' stroke='black' stroke-width='1' fill='#{status}' /></svg>"
+      @img = "<svg width='20' height='20'><circle cx='10' cy='10' r='8' stroke='grey' stroke-width='0.5' fill='#{status}' /></svg>"
     end
 
     def to_s()
@@ -37,6 +37,7 @@ module BranchStatistics
     @@green = StatusImage.new(:green)
     @@red = StatusImage.new(:red)
     @@yellow = StatusImage.new(:yellow)
+    @@white = StatusImage.new(:white)
 
     def self.Green
       @@green
@@ -47,17 +48,22 @@ module BranchStatistics
     def self.Red
       @@red
     end
+    def self.White
+      @@white
+    end
 
     def self.symbolize(s)
-      case s
-      when 'yes', 'good', 'APPROVED', 'SUCCESS', 'true', true
+      return s if s.is_a?(StatusImage)
+
+      case s.to_s.upcase
+      when 'YES', 'GOOD', 'APPROVED', 'SUCCESS', 'TRUE', 'QA APPROVED'
         StatusImage.Green
-      when 'no', 'bad', 'CHANGES_REQUESTED', 'FAILURE', 'false', false
+      when 'NO', 'BAD', 'CHANGES_REQUESTED', 'FAILURE', 'QA BUG', 'FALSE'
         StatusImage.Red
-      when 'PENDING', 'UNKNOWN', nil
+      when 'PENDING', 'UNKNOWN'
         StatusImage.Yellow
       else
-        s
+        StatusImage.White
       end
     end
 
@@ -66,7 +72,7 @@ module BranchStatistics
       [StatusImage.Red, StatusImage.Yellow, StatusImage.Green].each do |s|
         return s if syms.include?(s)
       end
-      StatusImage.Yellow  # Fallback
+      StatusImage.White  # Fallback
     end
 
   end
@@ -79,6 +85,7 @@ module BranchStatistics
       def generate_all(data, folder)
         gen_branches(data, File.join(folder, 'branches.md'))
         gen_pull_requests(data, File.join(folder, 'pull_requests.md'))
+        gen_branches_and_pull_requests(data, File.join(folder, 'branches_and_pull_requests.md'))
       end
       
       def gen_branches(data, filename)
@@ -90,14 +97,11 @@ module BranchStatistics
             ci: StatusImage.symbolize(b[:status]),
             branch: b[:name],
             authors: authors(d),
-            last_commit: b[:last_commit],
+            last_commit: b[:last_commit].flag_if(b[:last_commit_age] > 20),
             change: "+#{c[:additions]} / -#{c[:deletions]}",
 
-            # Add a sort key, dup it to ensure later mutation doesn't break it.
-            last_commit_SORT_KEY: b[:last_commit].dup
+            last_commit_SORT_KEY: b[:last_commit]
           }
-          row[:last_commit].flag_if!(b[:last_commit_age] > 20)
-          row[:change].flag_if!(c[:additions] + c[:deletions] > 500)
           row
         end
 
@@ -125,13 +129,12 @@ module BranchStatistics
             pull_request: title,
             branch: d[:branch][:name],
             authors: authors(d),
-            created: pr[:created].gsub(/^20/, ''),
+            created: pr[:created].gsub(/^20/, '').flag_if(pr[:age] > 20),
             c: StatusImage.symbolize(d[:branch][:status]),
             m: StatusImage.symbolize(pr[:mergeable]),
             r: StatusImage.worst_of(revs),
             age_SORT_KEY: pr[:age]
           }
-          row[:created].flag_if!(pr[:age] > 20)
           row[:c_m_r] = [:c, :m, :r].map { |sym| row[sym] }.join('')
           row[:status] = StatusImage.worst_of([:c, :m, :r].map { |sym| row[sym] })
           row
@@ -150,6 +153,51 @@ module BranchStatistics
         puts "Wrote #{filename}"
       end
 
+
+      def gen_branches_and_pull_requests(data, filename)
+
+        headings = [:branch, :last_commit, :pull_request, :ci, :r, :m, :qa]
+        create_row = lambda do |d|
+
+          b = d[:branch]
+          c = d[:commits]
+          pr = d[:pr]
+
+          branch_title = "#{b[:name]}<br /><span style='font-size: 10px'>#{authors(d, ', ')}</span>"
+          pr_link = pr[:number] ? "[#{pr[:number]}](#{pr[:url]})" : ''
+          reviews = pr[:reviews] || [{}]
+          rev_statuses = reviews.map { |r| r[:status] }.select { |r| r != 'COMMENTED' }
+          qa_statuses = pr[:labels] || []
+          qa_statuses = qa_statuses.select { |label| label =~ /QA/ }
+
+          row = {
+            branch: branch_title,
+            last_commit: b[:last_commit].flag_if(b[:last_commit_age] > 20),
+            pull_request: pr_link,
+            ci: StatusImage.symbolize(d[:branch][:status]),
+            r: StatusImage.worst_of(rev_statuses),
+            m: StatusImage.symbolize(pr[:mergeable]),
+            qa: StatusImage.worst_of(qa_statuses),
+            last_commit_SORT_KEY: b[:last_commit]
+          }
+
+          row
+        end
+
+        include_branches = [ /feature/, /hotfix/ ]
+        rows = data.
+               select { |d| include_branches.any? { |r| d[:branch][:name] =~ r } }.
+               map { |d| create_row.call(d) }
+
+        File.open(filename, 'w') do |f|
+          f.puts "**Key**: ci = passes CI; m = mergeable (no conflicts); r = reviews"
+          put_markdown_table(f, headings, rows, :last_commit_SORT_KEY, false)
+        end
+        puts "Wrote #{filename}"
+
+      end
+
+
       #################################
 
       def put_markdown_table(ostream, headings, rows, order_by = nil, ascending = true)
@@ -166,6 +214,7 @@ module BranchStatistics
         print_lin.call(print_headings)
         print_lin.call(headings.map { |h| '---' })
 
+        puts "Have order_by, vals = #{rows.map { |r| r[order_by] }}" if order_by
         rows.sort! { |a, b| a[order_by] <=> b[order_by] } if order_by
         rows.reverse! if (order_by and !ascending)
 

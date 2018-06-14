@@ -35,7 +35,8 @@ module BranchStatistics
               # Conflicts will be blocked later anyway.
               mergeable: ['MERGEABLE', 'UNKNOWN'].include?(pr.mergeable),
 
-              reviews: get_pr_review_data(pr)
+              reviews: get_pr_review_data(pr),
+              labels: pr.labels.nodes.map { |n| n.name }
             }
           end
           
@@ -113,7 +114,7 @@ module BranchStatistics
           get_reviews(pr.reviews.nodes)
         reviews
       end
-      
+
     end  # class << self
 
   end  # class Transform

@@ -14,6 +14,13 @@ gem install graphql-client
 # ... etc
 ```
 
+### Troubleshooting gem install
+
+You may have to manually update your Gem SSL cert.
+See chris-morgan's comment in
+https://github.com/rubygems/rubygems/issues/1745)
+
+
 ## Config
 
 Copy config.yml.example to another file (any filename is fine), and edit it for your GitHub and local repo.

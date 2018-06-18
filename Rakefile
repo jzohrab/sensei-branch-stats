@@ -8,6 +8,8 @@ $stdout.sync = true
 
 namespace :gem do
 
+  # May need to manually install a valid cert to get gems.
+  # Ref https://github.com/rubygems/rubygems/issues/1745
   desc "Install rubygems cert (only do this if you get ssl failures on install_gems)"
   task :install_cert do
     ruby_bin = RbConfig::CONFIG["bindir"]

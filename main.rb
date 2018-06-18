@@ -1,9 +1,10 @@
 require 'yaml'
 require 'fileutils'
+require 'certified'
 
 # HACK!
-require 'openssl'
-http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+# require 'openssl'
+# http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
 require_relative 'lib/github_branch_query'
 require_relative 'lib/git'

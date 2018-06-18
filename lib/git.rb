@@ -201,6 +201,13 @@ HERE
       commits = get_all_commits(base_branch, b)
       have_commits = commits.size() > 0
 
+      max_commits = 1000
+      if (commits.size() > max_commits) then
+        $stderr.puts "WARNING: #{base_branch}..#{b} has too many commits"
+        $stderr.puts "Got #{commits.size} commits.  Limiting to first #{max_commits}"
+        commits = commits[0..max_commits]
+      end
+
       net_stats = parse_diff_stats(get_output("git diff #{base_branch}...#{b} --numstat"))
 
       ret = {
@@ -239,7 +246,7 @@ HERE
       commit_stats = {}
       branches.each do |b|
         n += 1
-        $stdout.puts "  #{n} of #{branches.size}" if (n % 10 == 0)
+        $stdout.puts "  #{n} of #{branches.size} (#{b})"
         c = self.branch_stats(base_branch, b)
         commit_stats[b] = c.slice(:branch, :sha, :authors, :ahead, :additions, :deletions, :filecount)
       end

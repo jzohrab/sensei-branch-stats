@@ -3,7 +3,7 @@ require 'fileutils'
 
 # HACK!
 require 'openssl'
-OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
+http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
 require_relative 'lib/github_branch_query'
 require_relative 'lib/git'

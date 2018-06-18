@@ -12,6 +12,7 @@ module BranchStatistics
 
       def generate_all(git, folder)
         large_branch_line_chart(git, File.join(folder, 'large_branch_line_chart.md'))
+        # bubble_chart(git, File.join(folder, 'bubble_chart.md'))
       end
 
       def large_branch_line_chart(git, filename)
@@ -69,6 +70,37 @@ ENDCHART
         puts "Wrote #{filename}"
 
       end
+
+
+      # WIP, incomplete
+      def bubble_chart(git, filename)
+
+        remote_branches = git.get_output('git branch -r').map { |b| b.strip }
+        features =
+          remote_branches.
+          select { |b| b =~ /feature/ }
+
+        n = 0
+        data = features.map do |b|
+          n += 1
+          $stderr.puts " #{n} (#{n} of #{features.size})"
+          git.branch_stats('origin/develop', b)
+        end
+
+        output = data.
+                 select { |d| d[:linecount] > 0 }.
+                 select { |d| d[:stale] <= 20 }.
+                 sort { |a, b| a[:linecount] <=> b[:linecount] }.
+                 reverse.
+                 each_with_index.
+                 map do |b, i|
+          [ "B#{i + 1}", b[:branch].gsub('origin/feature/', ''), b[:age], b[:filecount], 'feature', b[:linecount] ].join('|')
+        end
+
+        # TODO - print to markdown
+
+      end
+      
 
     end  # class << self
 

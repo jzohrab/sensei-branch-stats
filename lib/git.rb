@@ -87,6 +87,13 @@ HERE
       raw = get_output(cmd).join("\n")
       raw_commits = raw.split(delimiter).select { |c| c != '' }
 
+      max_commits = 500
+      if (raw_commits.size() > max_commits) then
+        $stderr.puts "WARNING: #{base_branch}..#{b} has too many commits"
+        $stderr.puts "Got #{raw_commits.size} commits.  Limiting to first #{max_commits}"
+        raw_commits = raw_commits[0..max_commits]
+      end
+
       log("Command: #{cmd}")
       log("Split raw commits:")
       log(raw_commits.inspect)
@@ -200,13 +207,6 @@ HERE
 
       commits = get_all_commits(base_branch, b)
       have_commits = commits.size() > 0
-
-      max_commits = 1000
-      if (commits.size() > max_commits) then
-        $stderr.puts "WARNING: #{base_branch}..#{b} has too many commits"
-        $stderr.puts "Got #{commits.size} commits.  Limiting to first #{max_commits}"
-        commits = commits[0..max_commits]
-      end
 
       net_stats = parse_diff_stats(get_output("git diff #{base_branch}...#{b} --numstat"))
 

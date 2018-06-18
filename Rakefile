@@ -2,8 +2,6 @@ require 'yaml'
 require 'rbconfig'
 require 'fileutils'
 
-require_relative 'lib/github_graphql'
-
 $stdout.sync = true
 
 namespace :gem do
@@ -39,6 +37,10 @@ end
 
 desc "Dump the GraphQL schema"
 task :dump_schema do
+  # Requiring here is bad form, but we use Rake to install the gems,
+  # which this require needs.
+  require_relative 'lib/github_graphql'
+
   puts "Dumping schema"
   g = GitHubGraphQL.new(GitHubGraphQL.auth_token())
   g.dump_schema(GitHubGraphQL::SCHEMAFILE)

@@ -1,5 +1,6 @@
 require 'yaml'
 require 'fileutils'
+require 'openssl'
 
 require_relative 'lib/github_branch_query'
 require_relative 'lib/git'
@@ -9,6 +10,9 @@ require_relative 'config'
 require_relative 'transform'
 require_relative 'gen_reports'
 require_relative 'gen_charts'
+
+# HACK!
+OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 
 
 # Config

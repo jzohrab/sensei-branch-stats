@@ -1,4 +1,4 @@
-# GitHub spike
+# Branch Statistics
 
 
 ## Environment setup
@@ -17,6 +17,8 @@ gem install graphql-client
 ## Config
 
 Copy config.yml.example to another file (any filename is fine), and edit it for your GitHub and local repo.
+
+Copy creds.yml.example to creds.yml, and edit it with your tokens.  Optionally, set the keys in this file in your environment.
 
 
 ## Running

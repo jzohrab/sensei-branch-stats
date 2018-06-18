@@ -214,7 +214,6 @@ module BranchStatistics
         print_lin.call(print_headings)
         print_lin.call(headings.map { |h| '---' })
 
-        puts "Have order_by, vals = #{rows.map { |r| r[order_by] }}" if order_by
         rows.sort! { |a, b| a[order_by] <=> b[order_by] } if order_by
         rows.reverse! if (order_by and !ascending)
 

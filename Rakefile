@@ -1,6 +1,17 @@
 require 'yaml'
 require_relative 'lib/github_graphql'
+$stdout.sync = true
 
+desc "Install gems"
+task :install_gems do
+  lines = File.read(File.join(File.dirname(__FILE__), 'Gemfile')).split("\n")
+  gems =
+    lines.
+      select { |lin| lin =~ /^gem/ }.
+      map { |lin| lin.match(/'(.*)'/)[1] }
+  # puts gems.inspect
+  gems.each { |g| puts "Installing #{g}"; `gem install #{g} --no-ri --no-rdoc` }
+end
 
 desc "Dump the GraphQL schema"
 task :dump_schema do

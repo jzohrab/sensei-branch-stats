@@ -7,11 +7,10 @@
 bundle install
 ```
 
-or manually install the gems in the gemfile:
+or install the gems in the gemfile:
 
 ```
-gem install graphql-client
-# ... etc
+rake install_gems
 ```
 
 ### Troubleshooting gem install

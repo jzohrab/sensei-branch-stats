@@ -14,7 +14,6 @@ module BranchStatistics
 
     def initialize(repo_directory, options = {})
       @repo_dir = repo_directory
-      @cachefileroot = "git_#{@repo_dir.gsub('.', '_').gsub('/', '_')}"
       @options = options
       @localrefs = get_output('git show-ref --head')
     end
@@ -180,7 +179,7 @@ HERE
 
     def get_cachepath(base_branch, b)
       clean = lambda { |b| b.gsub('/', '_') }
-      f = "#{@cachefileroot}_#{clean.call(base_branch)}_#{clean.call(b)}.cache"
+      f = "git_#{clean.call(base_branch)}_#{clean.call(b)}.cache"
       File.join(File.dirname(__FILE__), 'cache', f)
     end
     

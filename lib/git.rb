@@ -89,7 +89,7 @@ HERE
 
       max_commits = 500
       if (raw_commits.size() > max_commits) then
-        $stderr.puts "WARNING: #{base_branch}..#{b} has too many commits"
+        $stderr.puts "WARNING: #{base}..#{b} has too many commits"
         $stderr.puts "Got #{raw_commits.size} commits.  Limiting to first #{max_commits}"
         raw_commits = raw_commits[0..max_commits]
       end

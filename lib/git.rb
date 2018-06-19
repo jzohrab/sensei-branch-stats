@@ -78,18 +78,25 @@ HERE
 
 
     def get_all_commits(base, branch)
+
+      # Getting way to many commits on some branches ... fail fast.
+      cmd = "git log #{base}..#{branch} --oneline"
+      commit_count = get_output(cmd).size()
+      raise "Too many commits, got #{commit_count} for command #{cmd}" if commit_count > 500
+
       # Getting base commit data, including numstat.  Parsing
       # multiline strings into groups is annoying, so being lazy and
       # using a delimiter to indicate the start of each commit, and
       # splitting on that.
       delimiter = '__COMMIT_START__'
       cmd = "git log #{base}..#{branch} --date=short --format=\"#{delimiter}%cd|%H|%ae\" --numstat"
+
       raw = get_output(cmd).join("\n")
       raw_commits = raw.split(delimiter).select { |c| c != '' }
 
       max_commits = 500
       if (raw_commits.size() > max_commits) then
-        $stderr.puts "WARNING: #{base}..#{b} has too many commits"
+        $stderr.puts "WARNING: #{base}..#{branch} has too many commits"
         $stderr.puts "Got #{raw_commits.size} commits.  Limiting to first #{max_commits}"
         raw_commits = raw_commits[0..max_commits]
       end

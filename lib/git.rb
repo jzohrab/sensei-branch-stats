@@ -64,18 +64,6 @@ HERE
               select { |s| s != '' }
     end
 
-    def fetch_and_prune()
-      remote = @options[:remote_name]
-      if @options[:fetch] then
-        $stdout.puts "Fetching"
-        self.run("git fetch #{remote}")
-      end
-      if @options[:prune] then
-        $stdout.puts "Pruning"
-        self.run("git remote prune #{remote}")
-      end
-    end
-
 
     def get_all_commits(base, branch)
 

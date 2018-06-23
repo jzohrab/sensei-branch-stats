@@ -18,6 +18,4 @@ local_repo:
   remote_name: origin
 
   # Optional:
-  fetch: false
-  prune: false
   verbose: false

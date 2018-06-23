@@ -29,11 +29,11 @@ local_git_config = full_config[:local_repo]
 github_token = BranchStatistics::Credentials.GITHUB_GRAPHQL_API_TOKEN
 bq = BranchStatistics::GitHubBranchQuery.new(github_token)
 result = bq.collect_branches(github_config)
-
-git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
 remote = local_git_config[:remote_name]
-git.fetch_and_prune()
 remote_branches = result.map { |b| "#{remote}/#{b.name}" }
+include_branches_regexes = full_config[:report][:include].map { |s| Regexp.new(s) }
+remote_branches.select! { |s| include_branches_regexes.any? { |r| s =~ r } }
+git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
 commit_stats = git.all_branch_basic_stats("#{remote}/develop", remote_branches)
 
 # all_branch_basic_stats is a hash, and the key includes the remote

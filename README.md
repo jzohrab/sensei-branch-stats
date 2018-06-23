@@ -37,5 +37,6 @@ ruby main.rb config.yml.example
 ## Notes
 
 * https://developer.github.com/v4/explorer/ - useful for building and testing queries.
-
-
+* This writer doesn't fetch the git repo, as that could cause a problem with very large repos.
+  The git repo is assumed to be in a good state prior to calling this, either set up
+  manually or as part of an automated job.

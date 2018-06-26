@@ -1,6 +1,7 @@
 require 'yaml'
 require 'fileutils'
 require 'certified'
+require 'pp'
 
 # HACK!
 # require 'openssl'
@@ -29,10 +30,14 @@ local_git_config = full_config[:local_repo]
 github_token = BranchStatistics::Credentials.GITHUB_GRAPHQL_API_TOKEN
 bq = BranchStatistics::GitHubBranchQuery.new(github_token)
 result = bq.collect_branches(github_config)
+
+# Filter list of branches to include.
+include_branches_regexes = full_config[:report][:include].map { |s| Regexp.new(s) }
+result.select! { |r| include_branches_regexes.any? { |regex| r.name =~ regex } }
+
+# Collect branch stats.
 remote = local_git_config[:remote_name]
 remote_branches = result.map { |b| "#{remote}/#{b.name}" }
-include_branches_regexes = full_config[:report][:include].map { |s| Regexp.new(s) }
-remote_branches.select! { |s| include_branches_regexes.any? { |r| s =~ r } }
 git = BranchStatistics::Git.new(local_git_config[:repo_dir], local_git_config)
 commit_stats = git.all_branch_basic_stats("#{remote}/develop", remote_branches)
 
